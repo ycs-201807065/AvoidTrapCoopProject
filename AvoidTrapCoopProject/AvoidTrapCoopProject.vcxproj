@@ -141,17 +141,21 @@
   <ItemGroup>
     <ClInclude Include="AvoidTrapCoopProject.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="MyCharacter.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AvoidTrapCoopProject.cpp" />
+    <ClCompile Include="MyCharacter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AvoidTrapCoopProject.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="AvoidTrapCoopProject.ico" />
+    <Image Include="Image\MyCharacterMain.bmp" />
+    <Image Include="Image\MyCharacterMainLeft.bmp" />
     <Image Include="small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

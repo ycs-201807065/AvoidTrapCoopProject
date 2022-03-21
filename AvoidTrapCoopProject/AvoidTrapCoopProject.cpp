@@ -3,13 +3,27 @@
 
 #include "framework.h"
 #include "AvoidTrapCoopProject.h"
+#include "MyCharacter.h"
 
 #define MAX_LOADSTRING 100
+
+#define IDC_BTN_START 5000  //시작 버튼 ID
+#define IDC_BTN_HELP 5001  //도움말 버튼 ID
+#define IDC_BTN_EXIT 5002  //종료 버튼 ID
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
+
+//헤더
+MyCharacter* myCharacter = new MyCharacter();
+//렉트
+RECT myClientRect;  //게임 플레이 화면 렉트(참고용)
+RECT myCharacterRect;  //내 캐릭터 렉트
+//인트형 변수
+int gameStarter;  //게임 시작했는지 확인용
+int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -121,19 +135,49 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
 //
 //
+HWND gameStartBtn, gameHelpBtn, gameExitBtn;  //각 버튼
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_CREATE:
+    {
+        SetWindowPos(hWnd, NULL, 200, 150, 1420, 900, 0);  // 게임창 크기 조절
+        GetClientRect(hWnd, &myClientRect);  // 조절된 크기 가져오기
+        //내 게임에서 사용할 바텀, 탑 값 조정
+        gameStartBtn = CreateWindow(L"button", L"게 임  시 작", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            (myClientRect.right / 2 - 125), 200, 250, 100, hWnd, (HMENU)IDC_BTN_START, NULL, NULL);
+        gameHelpBtn = CreateWindow(L"button", L"도 움 말", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            (myClientRect.right / 2 - 125), 350, 250, 100, hWnd, (HMENU)IDC_BTN_HELP, NULL, NULL);
+        gameExitBtn = CreateWindow(L"button", L"종    료", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            (myClientRect.right / 2 - 125), 500, 250, 100, hWnd, (HMENU)IDC_BTN_EXIT, NULL, NULL);
+        gameStarter = 0;
+    }
+        break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
             // 메뉴 선택을 구문 분석합니다:
             switch (wmId)
             {
+            case IDC_BTN_START:
+                ShowWindow(gameStartBtn, SW_HIDE);
+                ShowWindow(gameHelpBtn, SW_HIDE);
+                ShowWindow(gameExitBtn, SW_HIDE);
+
+                gameStarter = 1;
+                lookForCharacter = 2;
+
+                myCharacterRect.left = 20;
+                myCharacterRect.top = 500;
+                myCharacterRect.right = 68;
+                myCharacterRect.bottom = 548;
+                InvalidateRect(hWnd, NULL, FALSE);
+                break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
+            case IDC_BTN_EXIT:
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
@@ -142,14 +186,79 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_KEYDOWN:
+    {
+        if (gameStarter == 1) {
+            switch (wParam)
+            {
+            case VK_RIGHT:
+                myCharacterRect.left += myCharacter->Move(2);
+                myCharacterRect.right += myCharacter->Move(2);
+                lookForCharacter = 2;
+                break;
+            case VK_LEFT:
+                myCharacterRect.left += myCharacter->Move(1);
+                myCharacterRect.right += myCharacter->Move(1);
+                lookForCharacter = 1;
+                break;
+            case 0x57:
+                myCharacter->Debuff(5);
+                break;
+            default:
+                break;
+            }
+            InvalidateRect(hWnd, NULL, FALSE);
+        }
+    }
+        break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-            EndPaint(hWnd, &ps);
+    {
+        static HDC hdc, MemDC, tmpDC, imageDC;
+        static HBITMAP BackBit, oldBackBit;
+        HBITMAP myBitmap, oldBitmap;
+        static RECT bufferRT;
+        PAINTSTRUCT ps;
+
+        hdc = BeginPaint(hWnd, &ps);
+        GetClientRect(hWnd, &bufferRT);
+        MemDC = CreateCompatibleDC(hdc);
+        BackBit = CreateCompatibleBitmap(hdc, bufferRT.right, bufferRT.bottom);
+        oldBackBit = (HBITMAP)SelectObject(MemDC, BackBit);
+        PatBlt(MemDC, 0, 0, bufferRT.right, bufferRT.bottom, WHITENESS);
+        tmpDC = hdc;
+        hdc = MemDC;
+        MemDC = tmpDC;
+
+        // TODO: 여기에 그리기 코드를 추가합니다.
+        if (gameStarter == 1) {
+            imageDC = CreateCompatibleDC(hdc);
+            Rectangle(hdc, myCharacterRect.left, myCharacterRect.top, myCharacterRect.right, myCharacterRect.bottom);
+            myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
+            if (lookForCharacter == 1) {
+                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
+            }
+            else if (lookForCharacter == 2) {
+                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER01));
+            }
+            oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+            BitBlt(hdc, myCharacterRect.left, myCharacterRect.top, 48, 48, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+            SelectObject(imageDC, oldBitmap);
+            DeleteObject(myBitmap);
+        }
+        // End TODO
+
+        tmpDC = hdc;
+        hdc = MemDC;
+        MemDC = tmpDC;
+        GetClientRect(hWnd, &bufferRT);
+        BitBlt(hdc, 0, 0, bufferRT.right, bufferRT.bottom, MemDC, 0, 0, SRCCOPY);
+        SelectObject(MemDC, oldBackBit);
+        DeleteObject(BackBit);
+        DeleteDC(MemDC);
+        EndPaint(hWnd, &ps);
         }
         break;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
