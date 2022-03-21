@@ -35,16 +35,24 @@ extern int g_scafRectTop[g_scafNum];
 // 장애물 좌표
 extern int g_obsRectLeft[g_obsNum];
 extern int g_obsRectTop[g_obsNum];
+extern int g_obsRectRight[g_obsNum];
+extern int g_obsRectBottom[g_obsNum];
 
 // 장애물[가시] 좌표
-extern int g_obsThornLeft[g_obsThornNum];
-extern int g_obsThornTop[g_obsThornNum];
+extern int g_obsThornLeft[g_obsThornNum * 3];
+extern int g_obsThornTop[g_obsThornNum * 3];
 
 // 아이템 박스 좌표
 extern int g_itemBoxLeft[g_itemBoxNum];
 extern int g_itemBoxTop[g_itemBoxNum];
 
-int WinWidthS = 1400;       // 창의 가로 크기
+// 트랩 발동 조건 영역 좌표
+extern int g_TrapConfirmLeft[3];
+extern int g_TrapConfirmTop[3];
+extern int g_TrapConfirmRight[3];
+extern int g_TrapConfirmBottom[3];
+
+int WinWidthS = 1800;       // 창의 가로 크기
 int WinHeightS = 750;       // 창의 세로 크기
 
 //렉트
@@ -52,9 +60,12 @@ RECT myClientRect;  //게임 플레이 화면 렉트(참고용)
 RECT myCharacterRect;  //내 캐릭터 렉트
 RECT g_scaf[g_scafNum];        // 발판
 RECT g_obs[g_obsNum];         // 장애물
-RECT g_obsThorn[g_obsThornNum];    // 장애물[가시]
+RECT g_obsThorn[g_obsThornNum * 3];    // 장애물[가시]
 RECT g_bottom;      // 바닥
 RECT g_ItemBox[3];   // 아이템 박스
+RECT g_TrapConfirm[3];   // 트랩 발동 조건 영역
+RECT g_Finish;  // 도착지점
+RECT g_cloudobj;    // 구름
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -173,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        SetWindowPos(hWnd, NULL, 200, 150, WinWidthS, WinHeightS, 0);  // 게임창 크기 조절
+        SetWindowPos(hWnd, NULL, 50, 150, WinWidthS, WinHeightS, 0);  // 게임창 위치, 크기 조절
         GetClientRect(hWnd, &myClientRect);  // 조절된 크기 가져오기
         //내 게임에서 사용할 바텀, 탑 값 조정
         gameStartBtn = CreateWindow(L"button", L"게 임  시 작", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -183,8 +194,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         gameExitBtn = CreateWindow(L"button", L"종    료", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             (myClientRect.right / 2 - 125), 500, 250, 100, hWnd, (HMENU)IDC_BTN_EXIT, NULL, NULL);
         gameStarter = 0;
-
-        
     }
         break;
     case WM_COMMAND:
@@ -201,49 +210,70 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 gameStarter = 1;
                 lookForCharacter = 2;
 
+                // 바닥 생성
+                g_bottom.left = 0;
+                g_bottom.top = WinHeightS - 200;
+                g_bottom.right = myClientRect.right;
+                g_bottom.bottom = WinHeightS;
+
+                // 캐릭터 초기 좌표    <<캐릭터 크기 : 48 * 48>>
                 myCharacterRect.left = 20;
-                myCharacterRect.top = 500;
-                myCharacterRect.right = 68;
-                myCharacterRect.bottom = 548;
+                myCharacterRect.top = g_bottom.top - 48;
+                myCharacterRect.right = myCharacterRect.left + 48;
+                myCharacterRect.bottom = g_bottom.top;
+
+                // 도착 지점 생성
+                g_Finish.left = 1720;
+                g_Finish.top = 400;
+                g_Finish.right = myClientRect.right;
+                g_Finish.bottom = g_bottom.top;
+
+                // 구름 생성
+                g_cloudobj.left = 1580;
+                g_cloudobj.top = 260;
+                g_cloudobj.right = 1700;
+                g_cloudobj.bottom = 310;
 
                 /// 작업시작
                 // 발판 생성
                 for (int i = 0; i < g_scafNum; i++) {
                     g_scaf[i].left = g_scafRectLeft[i];
                     g_scaf[i].top = g_scafRectTop[i];
-                    g_scaf[i].right = g_scaf[i].left + 30;;
-                    g_scaf[i].bottom = g_scaf[i].top + 30;
+                    g_scaf[i].right = g_scaf[i].left + 70;
+                    g_scaf[i].bottom = g_bottom.top;
                 }
 
                 // 장애물 생성
                 for (int i = 0; i < g_obsNum; i++) {
                     g_obs[i].left = g_obsRectLeft[i];
                     g_obs[i].top = g_obsRectTop[i];
-                    g_obs[i].right = g_obs[i].left + 40;
-                    
+                    g_obs[i].right = g_obsRectRight[i];
+                    g_obs[i].bottom = g_obsRectBottom[i];
                 }
 
                 // 장애물[가시] 생성
-                for (int i = 0; i < g_obsThornNum; i++) {
-                    g_scaf[i].left = g_scafRectLeft[i];
-                    g_scaf[i].top = g_scafRectTop[i];
-                    g_scaf[i].right = g_scaf[i].left + 30;;
-                    g_scaf[i].bottom = g_scaf[i].top + 30;
+                for (int i = 0; i < g_obsThornNum * 3; i++) {
+                    g_obsThorn[i].left = g_obsThornLeft[i];
+                    g_obsThorn[i].top = g_obsThornTop[i] - 1;
+                    g_obsThorn[i].right = g_obsThorn[i].left + 1;
+                    g_obsThorn[i].bottom = g_obsThorn[i].top + 1;
                 }
 
                 // 아이템 박스 생성
                 for (int i = 0; i < g_itemBoxNum; i++) {
-                    g_scaf[i].left = g_scafRectLeft[i];
-                    g_scaf[i].top = g_scafRectTop[i];
-                    g_scaf[i].right = g_scaf[i].left + 30;;
-                    g_scaf[i].bottom = g_scaf[i].top + 30;
+                    g_ItemBox[i].left = g_itemBoxLeft[i];
+                    g_ItemBox[i].top = g_itemBoxTop[i];
+                    g_ItemBox[i].right = g_ItemBox[i].left + 30;
+                    g_ItemBox[i].bottom = g_ItemBox[i].top + 30;
                 }
 
-                // 바닥 생성
-                g_bottom.left = 0;
-                g_bottom.top = WinHeightS - 200;
-                g_bottom.right = g_bottom.left + myClientRect.right;
-                g_bottom.bottom = WinHeightS;
+                // 트랩 발동 조건 영역 생성
+                for (int i = 0; i < 3; i++) {
+                    g_TrapConfirm[i].left = g_TrapConfirmLeft[i];
+                    g_TrapConfirm[i].top = g_TrapConfirmTop[i];
+                    g_TrapConfirm[i].right = g_TrapConfirmRight[i];
+                    g_TrapConfirm[i].bottom = g_TrapConfirmBottom[i];
+                }
 
                 InvalidateRect(hWnd, NULL, FALSE);
                 break;
@@ -302,15 +332,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         hdc = MemDC;
         MemDC = tmpDC;
 
+        //  테스트용 변수
+        WCHAR test[128];
+        //
+        
+
         // TODO: 여기에 그리기 코드를 추가합니다.
         /// 게임시작
         if (gameStarter == 1) {
             imageDC = CreateCompatibleDC(hdc);
             Rectangle(hdc, myCharacterRect.left, myCharacterRect.top, myCharacterRect.right, myCharacterRect.bottom);
+            wsprintfW(test, L"left : %d || top : %d", myCharacterRect.left, myCharacterRect.top);
+            TextOut(hdc, 30, 30, test, lstrlenW(test));
+
+            // 발판, 장애물, 장애물[가시], 아이템박스 그리기
             for (int i = 0; i < g_scafNum; i++) {
                 Rectangle(hdc, g_scaf[i].left, g_scaf[i].top, g_scaf[i].right, g_scaf[i].bottom);
             }
+
+            for (int i = 0; i < g_obsNum; i++) {
+                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
+            }
+
+            for (int i = 1; i < (g_obsThornNum * 3); (i += 3)) {
+                MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
+                LineTo(hdc, g_obsThorn[i - 1].left, g_obsThorn[i - 1].top);
+                MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
+                LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
+            }
+
+            for (int i = 0; i < g_itemBoxNum; i++) {
+                Rectangle(hdc, g_ItemBox[i].left, g_ItemBox[i].top, g_ItemBox[i].right, g_ItemBox[i].bottom);
+            }
+
+            // 트랩 발동 조건 영역 그리기
+            /// ※테스트 후 삭제
+            for (int i = 0; i < 3; i++) {
+                Rectangle(hdc, g_TrapConfirm[i].left, g_TrapConfirm[i].top, g_TrapConfirm[i].right, g_TrapConfirm[i].bottom);
+            }
+
+            // 바닥 그리기
             Rectangle(hdc, g_bottom.left, g_bottom.top, g_bottom.right, g_bottom.bottom);
+
+            // 도착지점 그리기
+            Rectangle(hdc, g_Finish.left, g_Finish.top, g_Finish.right, g_Finish.bottom);
+
+            // 구름 그리기
+            Rectangle(hdc, g_cloudobj.left, g_cloudobj.top, g_cloudobj.right, g_cloudobj.bottom);
             
             myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
 
