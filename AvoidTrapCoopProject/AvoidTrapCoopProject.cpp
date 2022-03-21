@@ -18,12 +18,43 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름�
 
 //헤더
 MyCharacter* myCharacter = new MyCharacter();
-//렉트
-RECT myClientRect;  //게임 플레이 화면 렉트(참고용)
-RECT myCharacterRect;  //내 캐릭터 렉트
+
 //인트형 변수
 int gameStarter;  //게임 시작했는지 확인용
 int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
+
+const int g_scafNum = 8;           // 발판 개수
+const int g_obsNum = 13;            // 장애물 개수
+const int g_obsThornNum = 5;       // 장애물[가시] 개수
+const int g_itemBoxNum = 3;
+
+// 발판 좌표
+extern int g_scafRectLeft[g_scafNum];
+extern int g_scafRectTop[g_scafNum];
+
+// 장애물 좌표
+extern int g_obsRectLeft[g_obsNum];
+extern int g_obsRectTop[g_obsNum];
+
+// 장애물[가시] 좌표
+extern int g_obsThornLeft[g_obsThornNum];
+extern int g_obsThornTop[g_obsThornNum];
+
+// 아이템 박스 좌표
+extern int g_itemBoxLeft[g_itemBoxNum];
+extern int g_itemBoxTop[g_itemBoxNum];
+
+int WinWidthS = 1400;       // 창의 가로 크기
+int WinHeightS = 750;       // 창의 세로 크기
+
+//렉트
+RECT myClientRect;  //게임 플레이 화면 렉트(참고용)
+RECT myCharacterRect;  //내 캐릭터 렉트
+RECT g_scaf[g_scafNum];        // 발판
+RECT g_obs[g_obsNum];         // 장애물
+RECT g_obsThorn[g_obsThornNum];    // 장애물[가시]
+RECT g_bottom;      // 바닥
+RECT g_ItemBox[3];   // 아이템 박스
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -111,7 +142,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
@@ -142,7 +173,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        SetWindowPos(hWnd, NULL, 200, 150, 1420, 900, 0);  // 게임창 크기 조절
+        SetWindowPos(hWnd, NULL, 200, 150, WinWidthS, WinHeightS, 0);  // 게임창 크기 조절
         GetClientRect(hWnd, &myClientRect);  // 조절된 크기 가져오기
         //내 게임에서 사용할 바텀, 탑 값 조정
         gameStartBtn = CreateWindow(L"button", L"게 임  시 작", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -152,6 +183,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         gameExitBtn = CreateWindow(L"button", L"종    료", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             (myClientRect.right / 2 - 125), 500, 250, 100, hWnd, (HMENU)IDC_BTN_EXIT, NULL, NULL);
         gameStarter = 0;
+
+        
     }
         break;
     case WM_COMMAND:
@@ -172,6 +205,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 myCharacterRect.top = 500;
                 myCharacterRect.right = 68;
                 myCharacterRect.bottom = 548;
+
+                /// 작업시작
+                // 발판 생성
+                for (int i = 0; i < g_scafNum; i++) {
+                    g_scaf[i].left = g_scafRectLeft[i];
+                    g_scaf[i].top = g_scafRectTop[i];
+                    g_scaf[i].right = g_scaf[i].left + 30;;
+                    g_scaf[i].bottom = g_scaf[i].top + 30;
+                }
+
+                // 장애물 생성
+                for (int i = 0; i < g_obsNum; i++) {
+                    g_obs[i].left = g_obsRectLeft[i];
+                    g_obs[i].top = g_obsRectTop[i];
+                    g_obs[i].right = g_obs[i].left + 40;
+                    
+                }
+
+                // 장애물[가시] 생성
+                for (int i = 0; i < g_obsThornNum; i++) {
+                    g_scaf[i].left = g_scafRectLeft[i];
+                    g_scaf[i].top = g_scafRectTop[i];
+                    g_scaf[i].right = g_scaf[i].left + 30;;
+                    g_scaf[i].bottom = g_scaf[i].top + 30;
+                }
+
+                // 아이템 박스 생성
+                for (int i = 0; i < g_itemBoxNum; i++) {
+                    g_scaf[i].left = g_scafRectLeft[i];
+                    g_scaf[i].top = g_scafRectTop[i];
+                    g_scaf[i].right = g_scaf[i].left + 30;;
+                    g_scaf[i].bottom = g_scaf[i].top + 30;
+                }
+
+                // 바닥 생성
+                g_bottom.left = 0;
+                g_bottom.top = WinHeightS - 200;
+                g_bottom.right = g_bottom.left + myClientRect.right;
+                g_bottom.bottom = WinHeightS;
+
                 InvalidateRect(hWnd, NULL, FALSE);
                 break;
             case IDM_ABOUT:
@@ -230,16 +303,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         MemDC = tmpDC;
 
         // TODO: 여기에 그리기 코드를 추가합니다.
+        /// 게임시작
         if (gameStarter == 1) {
             imageDC = CreateCompatibleDC(hdc);
             Rectangle(hdc, myCharacterRect.left, myCharacterRect.top, myCharacterRect.right, myCharacterRect.bottom);
+            for (int i = 0; i < g_scafNum; i++) {
+                Rectangle(hdc, g_scaf[i].left, g_scaf[i].top, g_scaf[i].right, g_scaf[i].bottom);
+            }
+            Rectangle(hdc, g_bottom.left, g_bottom.top, g_bottom.right, g_bottom.bottom);
+            
             myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
+
             if (lookForCharacter == 1) {
                 myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
             }
             else if (lookForCharacter == 2) {
                 myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER01));
             }
+
             oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
             BitBlt(hdc, myCharacterRect.left, myCharacterRect.top, 48, 48, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
             SelectObject(imageDC, oldBitmap);
