@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClCompile Include="AvoidTrapCoopProject.cpp" />
     <ClCompile Include="MyCharacter.cpp" />
+    <ClCompile Include="Project_Coordinate.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AvoidTrapCoopProject.rc" />
