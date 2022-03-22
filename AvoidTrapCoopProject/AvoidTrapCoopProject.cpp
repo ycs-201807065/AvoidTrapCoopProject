@@ -67,6 +67,11 @@ RECT g_TrapConfirm[3];   // 트랩 발동 조건 영역
 RECT g_Finish;  // 도착지점
 RECT g_cloudobj;    // 구름
 
+//함수
+void JumpMyCharacter(HWND jumpHWND, int lookFlag);  //점프 함수
+void HitForObsThorn(HWND hitHWND);  //가시 닿았을때 호출되는 함수
+
+
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -180,6 +185,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 HWND gameStartBtn, gameHelpBtn, gameExitBtn;  //각 버튼
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    RECT dst;
     switch (message)
     {
     case WM_CREATE:
@@ -307,8 +313,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case 0x57:
                 myCharacter->Debuff(5);
                 break;
+            case VK_SPACE:
+                JumpMyCharacter(hWnd, lookForCharacter);
+                break;
             default:
                 break;
+            }
+            for (int obsThornI = 0; obsThornI <= g_obsThornNum; obsThornI++) {
+                if (TRUE == IntersectRect(&dst, &myCharacterRect, &g_obsThorn[obsThornI])) {
+                    HitForObsThorn(hWnd);
+                }
             }
             InvalidateRect(hWnd, NULL, FALSE);
         }
@@ -435,4 +449,69 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+void JumpMyCharacter(HWND jumpHWND, int lookFlag) {
+    int i = 0;  //반복 제어용1
+    while (i <= 10) {
+        myCharacterRect.top -= 5;
+        myCharacterRect.bottom -= 5;
+        InvalidateRect(jumpHWND, NULL, FALSE);
+        UpdateWindow(jumpHWND);
+        i++;
+        Sleep(15);
+    }
+    i = 0;
+    while (i <= 10) {
+        myCharacterRect.top += 5;
+        myCharacterRect.bottom += 5;
+        InvalidateRect(jumpHWND, NULL, FALSE);
+        UpdateWindow(jumpHWND);
+        i++;
+        Sleep(15);
+    }
+}
+
+void HitForObsThorn(HWND hitHWND) {
+    int i = 0;  //반복 제어용1
+    int j = 0;  //반복 제어용2
+    while (i <= 10) {
+        myCharacterRect.top -= 5;
+        myCharacterRect.bottom -= 5;
+        InvalidateRect(hitHWND, NULL, FALSE);
+        UpdateWindow(hitHWND);
+        i++;
+        Sleep(15);
+    }
+    for (j = 0; j <= 5; j++) {
+        myCharacterRect.left -= 5;
+        myCharacterRect.right -= 5;
+        InvalidateRect(hitHWND, NULL, FALSE);
+        UpdateWindow(hitHWND);
+        Sleep(20);
+    }
+    for (j = 0; j <= 10; j++) {
+        myCharacterRect.left += 5;
+        myCharacterRect.right += 5;
+        InvalidateRect(hitHWND, NULL, FALSE);
+        UpdateWindow(hitHWND);
+        Sleep(20);
+    }
+    for (j = 0; j <= 5; j++) {
+        myCharacterRect.left -= 5;
+        myCharacterRect.right -= 5;
+        InvalidateRect(hitHWND, NULL, FALSE);
+        UpdateWindow(hitHWND);
+        Sleep(20);
+    }
+    Sleep(300);
+    i = 0;
+    while (i <= 60) {
+        myCharacterRect.top += 5;
+        myCharacterRect.bottom += 5;
+        InvalidateRect(hitHWND, NULL, FALSE);
+        UpdateWindow(hitHWND);
+        i++;
+        Sleep(10);
+    }
 }
