@@ -62,7 +62,6 @@ int WinHeightS = 750;       // 창의 세로 크기
 /// 테스트변수
 INT t_time = 0;
 INT m_check = 0;
-INT j_check = 0;
 RECT CrashBottom;
 
 /// 렉트
@@ -85,7 +84,7 @@ BOOL jumping = FALSE;           // 점프를 했는지 여부
 
 /// 함수
 void MoveMyCharacter();
-void JumpMyCharacter();
+void JumpMyCharacter(HWND moveHWND);
 void CharacterCrash(HWND hWnd);
 
 
@@ -343,8 +342,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_UP:
             case VK_SPACE:
                 jumping = TRUE;
-                ///테스트
-                j_check = 1;
+                JumpMyCharacter(hWnd);
+                
                 break;
             default:
                 break;
@@ -397,9 +396,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // TODO: 여기에 그리기 코드를 추가합니다.
         /// 게임시작
         if (gameStarter == 1) {
+            MoveMyCharacter();
+            
+
             imageDC = CreateCompatibleDC(hdc);
             Rectangle(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, myCharacterRect.right, myCharacterRect.bottom + g_JumpHeight);
-            wsprintfW(test, L"left : %d || top : %d || bottom : %d || check : %d", myCharacterRect.left, myCharacterRect.top + g_JumpHeight, g_JumpPower, j_check);
+            wsprintfW(test, L"left : %d || top : %d || bottom : %d", myCharacterRect.left, myCharacterRect.top + g_JumpHeight, g_JumpPower);
             TextOut(hdc, 30, 30, test, lstrlenW(test));
 
             // 발판, 장애물, 장애물[가시], 아이템박스 그리기
@@ -454,8 +456,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DeleteObject(myBitmap);
 
             //CharacterCrash(hWnd);
-            MoveMyCharacter();
-            JumpMyCharacter();
+            
             //InvalidateRect(hWnd, NULL, FALSE);
             
         }
@@ -504,41 +505,49 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 void MoveMyCharacter() {
     if (move_Left) {
-        myCharacterRect.left -= 1;
-        myCharacterRect.right -= 1;
+        myCharacterRect.left += myCharacter->Move(1);
+        myCharacterRect.right += myCharacter->Move(1);
         ///테스트
         t_time++;
     }
     if (move_Right) {
-        myCharacterRect.left += 1;
-        myCharacterRect.right += 1;
+        myCharacterRect.left += myCharacter->Move(2);
+        myCharacterRect.right += myCharacter->Move(2);
         ///테스트
         t_time++;
     }
 }
 
-void JumpMyCharacter() {
-    if (jumping) {
-        // 점프 중 바닥과 닿으면 변화 값 초기상태로 복구
-        if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
-            g_JumpPower = 300;
-            g_JumpHeight = 0;
-            myCharacterRect.bottom = CrashBottom.top;
-            myCharacterRect.top = myCharacterRect.bottom - 48;
-            jumping = FALSE;
-            ///테스트
-            j_check = 0;
-            return;
+void JumpMyCharacter(HWND moveHWND) {
+    if (jumping == TRUE) {
+        while (TRUE) {
+            if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
+                g_JumpPower = 300;
+                int g_Gravity = 4;
+                g_JumpHeight = 0;
+                myCharacterRect.bottom = CrashBottom.top;
+                myCharacterRect.top = myCharacterRect.bottom - 48;
+                NowmyCharacterRect.left = 0;
+                NowmyCharacterRect.right = 0;
+                NowmyCharacterRect.bottom = 0;
+                NowmyCharacterRect.top = 0;
+                jumping = FALSE;
+                break;
+            }
+            // 점프 높이와 점프 힘을 감소 및 중력 증가
+            g_JumpHeight -= g_JumpPower * 0.04;
+            g_JumpPower -= g_Gravity * 4;
+
+            NowmyCharacterRect.top = myCharacterRect.top + g_JumpHeight;
+            NowmyCharacterRect.left = myCharacterRect.left;
+            NowmyCharacterRect.bottom = myCharacterRect.bottom + g_JumpHeight;
+            NowmyCharacterRect.right = myCharacterRect.right;
+            Sleep(10);
+            InvalidateRect(moveHWND, NULL, FALSE);
+            UpdateWindow(moveHWND);
+
         }
 
-        // 점프 높이와 점프 힘을 감소 및 중력 증가
-        g_JumpHeight -= g_JumpPower * 0.04;
-        g_JumpPower -= g_Gravity * 4;
-
-        NowmyCharacterRect.top = myCharacterRect.top + g_JumpHeight;
-        NowmyCharacterRect.left = myCharacterRect.left;
-        NowmyCharacterRect.bottom = myCharacterRect.bottom + g_JumpHeight;
-        NowmyCharacterRect.right = myCharacterRect.right;
     }
 }
 

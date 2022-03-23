@@ -7,8 +7,8 @@ private:
 	int speed;
 
 public:
-	//MyCharacter();
-	//int Move(int flag);
+	MyCharacter();
+	int Move(int flag);
 	void Debuff(int debuffNumber);
 	int getSpeed() {
 		return speed;
