@@ -200,6 +200,48 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
 //
 //
+
+HWND testHWND;
+DWORD WINAPI jumpTest(LPVOID param) {
+    int th_JumpPower = (int)param;
+    if (jumping == FALSE) {
+        jumping = TRUE;
+        while (TRUE) {
+            if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
+                //g_JumpPower = 300;
+                int g_Gravity = 4;
+                g_JumpHeight = 0;
+                myCharacterRect.bottom = CrashBottom.top;
+                myCharacterRect.top = myCharacterRect.bottom - 48;
+                NowmyCharacterRect.left = 0;
+                NowmyCharacterRect.right = 0;
+                NowmyCharacterRect.bottom = 0;
+                NowmyCharacterRect.top = 0;
+                jumping = FALSE;
+                InvalidateRect(testHWND, NULL, FALSE);
+                UpdateWindow(testHWND);
+                break;
+            }
+            // 점프 높이와 점프 힘을 감소 및 중력 증가
+            g_JumpHeight -= th_JumpPower * 0.04;
+            th_JumpPower -= g_Gravity * 4;
+
+            NowmyCharacterRect.top = myCharacterRect.top + g_JumpHeight;
+            NowmyCharacterRect.left = myCharacterRect.left;
+            NowmyCharacterRect.bottom = myCharacterRect.bottom + g_JumpHeight;
+            NowmyCharacterRect.right = myCharacterRect.right;
+            Sleep(10);
+            InvalidateRect(testHWND, NULL, FALSE);
+            UpdateWindow(testHWND);
+
+        }
+
+    }
+    ExitThread(0);
+    return 0;
+}
+
+
 HWND gameStartBtn, gameHelpBtn, gameExitBtn;  //각 버튼
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -217,6 +259,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         gameExitBtn = CreateWindow(L"button", L"종    료", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             (myClientRect.right / 2 - 125), 500, 250, 100, hWnd, (HMENU)IDC_BTN_EXIT, NULL, NULL);
         gameStarter = 0;
+        testHWND = hWnd;
     }
         break;
     case WM_COMMAND:
@@ -341,9 +384,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case VK_UP:
             case VK_SPACE:
-                jumping = TRUE;
-                JumpMyCharacter(hWnd);
-                
+                //JumpMyCharacter(hWnd);
+                CreateThread(NULL, 0, jumpTest, (LPVOID)g_JumpPower, 0, NULL);
                 break;
             default:
                 break;
@@ -397,7 +439,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         /// 게임시작
         if (gameStarter == 1) {
             MoveMyCharacter();
-            
 
             imageDC = CreateCompatibleDC(hdc);
             Rectangle(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, myCharacterRect.right, myCharacterRect.bottom + g_JumpHeight);
@@ -519,6 +560,7 @@ void MoveMyCharacter() {
 }
 
 void JumpMyCharacter(HWND moveHWND) {
+    /*
     if (jumping == TRUE) {
         while (TRUE) {
             if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
@@ -549,6 +591,7 @@ void JumpMyCharacter(HWND moveHWND) {
         }
 
     }
+    */
 }
 
 void CharacterCrash(HWND hWnd) {
