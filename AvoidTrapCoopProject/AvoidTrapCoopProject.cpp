@@ -208,7 +208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        SetWindowPos(hWnd, NULL, 50, 150, WinWidthS, WinHeightS, 0);  // 게임창 위치, 크기 조절
+        SetWindowPos(hWnd, NULL, 1970, 150, WinWidthS, WinHeightS, 0);  // 게임창 위치, 크기 조절
         GetClientRect(hWnd, &myClientRect);  // 조절된 크기 가져오기
         //내 게임에서 사용할 바텀, 탑 값 조정
         gameStartBtn = CreateWindow(L"button", L"게 임  시 작", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -456,7 +456,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             //CharacterCrash(hWnd);
             MoveMyCharacter();
             JumpMyCharacter();
-            //InvalidateRect(hWnd, NULL, FALSE);
+            InvalidateRect(hWnd, NULL, FALSE);
             
         }
         // End TODO
