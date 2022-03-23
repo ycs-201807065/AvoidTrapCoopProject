@@ -1,6 +1,6 @@
 #include "myCharacter.h"
 
-
+/*
 MyCharacter::MyCharacter() {
 	speed = 10;
 }
@@ -17,7 +17,7 @@ int MyCharacter::Move(int flag) {
 	}
 	return moveing;
 }
-
+*/
 
 void MyCharacter::Debuff(int debuffNumber) {
 	//느려지는거 설정

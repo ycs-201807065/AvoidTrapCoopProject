@@ -11,17 +11,21 @@
 #define IDC_BTN_HELP 5001  //도움말 버튼 ID
 #define IDC_BTN_EXIT 5002  //종료 버튼 ID
 
-// 전역 변수:
+/// 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 
-//헤더
+/// 헤더
 MyCharacter* myCharacter = new MyCharacter();
 
-//인트형 변수
+/// 인트형 변수
 int gameStarter;  //게임 시작했는지 확인용
 int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
+
+int g_JumpPower = 300;                  // 점프의 힘 조절
+int g_Gravity = 4;                      // 점프 후 내려오는 속도(중력) 조절
+int g_JumpHeight = 0;                   // 점프 높이
 
 const int g_scafNum = 8;           // 발판 개수
 const int g_obsNum = 13;            // 장애물 개수
@@ -55,9 +59,16 @@ extern int g_TrapConfirmBottom[3];
 int WinWidthS = 1800;       // 창의 가로 크기
 int WinHeightS = 750;       // 창의 세로 크기
 
-//렉트
+/// 테스트변수
+INT t_time = 0;
+INT m_check = 0;
+INT j_check = 0;
+RECT CrashBottom;
+
+/// 렉트
 RECT myClientRect;  //게임 플레이 화면 렉트(참고용)
 RECT myCharacterRect;  //내 캐릭터 렉트
+RECT NowmyCharacterRect;    // 현재 내 캐릭터 위치
 RECT g_scaf[g_scafNum];        // 발판
 RECT g_obs[g_obsNum];         // 장애물
 RECT g_obsThorn[g_obsThornNum * 3];    // 장애물[가시]
@@ -67,9 +78,15 @@ RECT g_TrapConfirm[3];   // 트랩 발동 조건 영역
 RECT g_Finish;  // 도착지점
 RECT g_cloudobj;    // 구름
 
-//함수
-void JumpMyCharacter(HWND jumpHWND, int lookFlag);  //점프 함수
-void HitForObsThorn(HWND hitHWND);  //가시 닿았을때 호출되는 함수
+/// 불
+BOOL move_Left = FALSE;         // 좌측으로 이동하는지 여부
+BOOL move_Right = FALSE;        // 우측으로 이동하는지 여부
+BOOL jumping = FALSE;           // 점프를 했는지 여부
+
+/// 함수
+void MoveMyCharacter();
+void JumpMyCharacter();
+void CharacterCrash(HWND hWnd);
 
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
@@ -144,6 +161,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
+/// 캐릭터 우측으로 이동안함, 점프 시 점프 및 낙하 속도 빠름, 점프 시 바닥에 닿아도 계속 추락함
+
 //
 //   함수: InitInstance(HINSTANCE, int)
 //
@@ -185,7 +204,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 HWND gameStartBtn, gameHelpBtn, gameExitBtn;  //각 버튼
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    RECT dst;
     switch (message)
     {
     case WM_CREATE:
@@ -240,7 +258,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 g_cloudobj.right = 1700;
                 g_cloudobj.bottom = 310;
 
-                /// 작업시작
                 // 발판 생성
                 for (int i = 0; i < g_scafNum; i++) {
                     g_scaf[i].left = g_scafRectLeft[i];
@@ -301,33 +318,59 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (wParam)
             {
             case VK_RIGHT:
+                /*
                 myCharacterRect.left += myCharacter->Move(2);
                 myCharacterRect.right += myCharacter->Move(2);
+                */
                 lookForCharacter = 2;
+                move_Right = TRUE;
+                ///테스트
+                m_check = 2;
                 break;
             case VK_LEFT:
+                /*
                 myCharacterRect.left += myCharacter->Move(1);
                 myCharacterRect.right += myCharacter->Move(1);
+                */
                 lookForCharacter = 1;
+                move_Left = TRUE;
+                ///테스트
+                m_check = 1;
                 break;
             case 0x57:
                 myCharacter->Debuff(5);
                 break;
+            case VK_UP:
             case VK_SPACE:
-                JumpMyCharacter(hWnd, lookForCharacter);
+                jumping = TRUE;
+                ///테스트
+                j_check = 1;
                 break;
             default:
                 break;
             }
-            for (int obsThornI = 0; obsThornI <= g_obsThornNum; obsThornI++) {
-                if (TRUE == IntersectRect(&dst, &myCharacterRect, &g_obsThorn[obsThornI])) {
-                    HitForObsThorn(hWnd);
-                }
-            }
+
+            
             InvalidateRect(hWnd, NULL, FALSE);
         }
     }
+    break;
+
+    case WM_KEYUP:
+        switch (wParam) {
+        case VK_LEFT:
+            move_Left = FALSE;
+            ///테스트
+            m_check = 3;
+            break;
+        case VK_RIGHT:
+            move_Right = FALSE;
+            ///테스트
+            m_check = 4;
+            break;
+        }
         break;
+
     case WM_PAINT:
     {
         static HDC hdc, MemDC, tmpDC, imageDC;
@@ -355,8 +398,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         /// 게임시작
         if (gameStarter == 1) {
             imageDC = CreateCompatibleDC(hdc);
-            Rectangle(hdc, myCharacterRect.left, myCharacterRect.top, myCharacterRect.right, myCharacterRect.bottom);
-            wsprintfW(test, L"left : %d || top : %d", myCharacterRect.left, myCharacterRect.top);
+            Rectangle(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, myCharacterRect.right, myCharacterRect.bottom + g_JumpHeight);
+            wsprintfW(test, L"left : %d || top : %d || bottom : %d || check : %d", myCharacterRect.left, myCharacterRect.top + g_JumpHeight, g_JumpPower, j_check);
             TextOut(hdc, 30, 30, test, lstrlenW(test));
 
             // 발판, 장애물, 장애물[가시], 아이템박스 그리기
@@ -379,11 +422,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 Rectangle(hdc, g_ItemBox[i].left, g_ItemBox[i].top, g_ItemBox[i].right, g_ItemBox[i].bottom);
             }
 
+/// ※테스트 후 삭제
             // 트랩 발동 조건 영역 그리기
-            /// ※테스트 후 삭제
             for (int i = 0; i < 3; i++) {
                 Rectangle(hdc, g_TrapConfirm[i].left, g_TrapConfirm[i].top, g_TrapConfirm[i].right, g_TrapConfirm[i].bottom);
             }
+/// ※테스트 후 삭제
 
             // 바닥 그리기
             Rectangle(hdc, g_bottom.left, g_bottom.top, g_bottom.right, g_bottom.bottom);
@@ -394,6 +438,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 구름 그리기
             Rectangle(hdc, g_cloudobj.left, g_cloudobj.top, g_cloudobj.right, g_cloudobj.bottom);
             
+
             myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
 
             if (lookForCharacter == 1) {
@@ -404,9 +449,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
-            BitBlt(hdc, myCharacterRect.left, myCharacterRect.top, 48, 48, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+            BitBlt(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, 48, 48, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
             SelectObject(imageDC, oldBitmap);
             DeleteObject(myBitmap);
+
+            //CharacterCrash(hWnd);
+            MoveMyCharacter();
+            JumpMyCharacter();
+            //InvalidateRect(hWnd, NULL, FALSE);
+            
         }
         // End TODO
 
@@ -451,67 +502,91 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void JumpMyCharacter(HWND jumpHWND, int lookFlag) {
-    int i = 0;  //반복 제어용1
-    while (i <= 10) {
-        myCharacterRect.top -= 5;
-        myCharacterRect.bottom -= 5;
-        InvalidateRect(jumpHWND, NULL, FALSE);
-        UpdateWindow(jumpHWND);
-        i++;
-        Sleep(15);
+void MoveMyCharacter() {
+    if (move_Left) {
+        myCharacterRect.left -= 1;
+        myCharacterRect.right -= 1;
+        ///테스트
+        t_time++;
     }
-    i = 0;
-    while (i <= 10) {
-        myCharacterRect.top += 5;
-        myCharacterRect.bottom += 5;
-        InvalidateRect(jumpHWND, NULL, FALSE);
-        UpdateWindow(jumpHWND);
-        i++;
-        Sleep(15);
+    if (move_Right) {
+        myCharacterRect.left += 1;
+        myCharacterRect.right += 1;
+        ///테스트
+        t_time++;
     }
 }
 
-void HitForObsThorn(HWND hitHWND) {
-    int i = 0;  //반복 제어용1
-    int j = 0;  //반복 제어용2
-    while (i <= 10) {
-        myCharacterRect.top -= 5;
-        myCharacterRect.bottom -= 5;
-        InvalidateRect(hitHWND, NULL, FALSE);
-        UpdateWindow(hitHWND);
-        i++;
-        Sleep(15);
+void JumpMyCharacter() {
+    if (jumping) {
+        // 점프 중 바닥과 닿으면 변화 값 초기상태로 복구
+        if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
+            g_JumpPower = 300;
+            g_JumpHeight = 0;
+            myCharacterRect.bottom = CrashBottom.top;
+            myCharacterRect.top = myCharacterRect.bottom - 48;
+            jumping = FALSE;
+            ///테스트
+            j_check = 0;
+            return;
+        }
+
+        // 점프 높이와 점프 힘을 감소 및 중력 증가
+        g_JumpHeight -= g_JumpPower * 0.04;
+        g_JumpPower -= g_Gravity * 4;
+
+        NowmyCharacterRect.top = myCharacterRect.top + g_JumpHeight;
+        NowmyCharacterRect.left = myCharacterRect.left;
+        NowmyCharacterRect.bottom = myCharacterRect.bottom + g_JumpHeight;
+        NowmyCharacterRect.right = myCharacterRect.right;
     }
-    for (j = 0; j <= 5; j++) {
-        myCharacterRect.left -= 5;
-        myCharacterRect.right -= 5;
-        InvalidateRect(hitHWND, NULL, FALSE);
-        UpdateWindow(hitHWND);
-        Sleep(20);
-    }
-    for (j = 0; j <= 10; j++) {
-        myCharacterRect.left += 5;
-        myCharacterRect.right += 5;
-        InvalidateRect(hitHWND, NULL, FALSE);
-        UpdateWindow(hitHWND);
-        Sleep(20);
-    }
-    for (j = 0; j <= 5; j++) {
-        myCharacterRect.left -= 5;
-        myCharacterRect.right -= 5;
-        InvalidateRect(hitHWND, NULL, FALSE);
-        UpdateWindow(hitHWND);
-        Sleep(20);
-    }
-    Sleep(300);
-    i = 0;
-    while (i <= 60) {
-        myCharacterRect.top += 5;
-        myCharacterRect.bottom += 5;
-        InvalidateRect(hitHWND, NULL, FALSE);
-        UpdateWindow(hitHWND);
-        i++;
-        Sleep(10);
+}
+
+void CharacterCrash(HWND hWnd) {
+    RECT dst;
+    for (int obsThornI = 0; obsThornI <= g_obsThornNum * 3; obsThornI++) {
+        if (TRUE == IntersectRect(&dst, &myCharacterRect, &g_obsThorn[obsThornI])) {
+            int i = 0;  //반복 제어용1
+            int j = 0;  //반복 제어용2
+            while (i <= 10) {
+                myCharacterRect.top -= 5;
+                myCharacterRect.bottom -= 5;
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+                i++;
+                Sleep(15);
+            }
+            for (j = 0; j <= 5; j++) {
+                myCharacterRect.left -= 5;
+                myCharacterRect.right -= 5;
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+                Sleep(20);
+            }
+            for (j = 0; j <= 10; j++) {
+                myCharacterRect.left += 5;
+                myCharacterRect.right += 5;
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+                Sleep(20);
+            }
+            for (j = 0; j <= 5; j++) {
+                myCharacterRect.left -= 5;
+                myCharacterRect.right -= 5;
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+                Sleep(20);
+            }
+            Sleep(300);
+            i = 0;
+            while (i <= 60) {
+                myCharacterRect.top += 5;
+                myCharacterRect.bottom += 5;
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+                i++;
+                Sleep(10);
+            }
+        }
     }
 }
