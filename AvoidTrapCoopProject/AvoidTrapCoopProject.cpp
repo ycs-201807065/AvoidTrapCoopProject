@@ -71,6 +71,7 @@ int WinWidthS = 1800;       // 창의 가로 크기
 int WinHeightS = 750;       // 창의 세로 크기
 
 
+
 /// 테스트변수
 
 WCHAR Test[128];
@@ -521,7 +522,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_PAINT:
     {
-        static HDC hdc, MemDC, tmpDC, imageDC;
+        static HDC hdc, MemDC, tmpDC;
+        HDC imageDC;
         static HBITMAP BackBit, oldBackBit;
         HBITMAP myBitmap, oldBitmap;
         static RECT bufferRT;
@@ -541,19 +543,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (gameStarter == 1) {
             imageDC = CreateCompatibleDC(hdc);
-
             // 표시 속도 조절
             Sleep(10);
 
             //Rectangle(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, myCharacterRect.right, myCharacterRect.bottom + g_JumpHeight);
 
-            // 발판, 장애물, 장애물[가시], 아이템박스 그리기
+            // 발판, 장애물[가시], 장애물, 아이템박스 그리기
             for (int i = 0; i < g_scafNum; i++) {
                 Rectangle(hdc, g_scaf[i].left, g_scaf[i].top, g_scaf[i].right, g_scaf[i].bottom);
-            }
-
-            for (int i = 0; i < g_obsNum; i++) {
-                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
             }
 
             for (int i = 1; i < (g_obsThornNum * 3); (i += 3)) {
@@ -563,6 +560,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
             }
 
+            for (int i = 0; i < g_obsNum; i++) {
+                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
+                //실험용 가시(위치알면 제대로 바꾸기)
+                if (i == 0) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
+                    oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                    BitBlt(hdc, g_obs[i].left+1, (g_bottom.top - 30), 96, 29, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                    SelectObject(imageDC, oldBitmap);
+                    DeleteObject(myBitmap);
+                }
+            }
             for (int i = 1; i < g_itemBoxNum; i++) {
                 Rectangle(hdc, g_ItemBox[i].left, g_ItemBox[i].top, g_ItemBox[i].right, g_ItemBox[i].bottom);
             }
@@ -580,14 +588,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             /// ※테스트 후 삭제
 
             // 바닥 그리기
-            Rectangle(hdc, g_bottom.left, g_bottom.top, g_bottom.right, g_bottom.bottom);
+            myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_BOTTOM01));
+            for (int g_i = 0; g_i <= 18; g_i++) {
+                oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                BitBlt(hdc, (g_i * 100), g_bottom.top, 100, 100, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                SelectObject(imageDC, oldBitmap);
+            }
+            myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_BOTTOM02));
+            for (int g_i = 0; g_i <= 18; g_i++) {
+                oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                BitBlt(hdc, (g_i * 100), g_bottom.top + 100, 100, 100, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                SelectObject(imageDC, oldBitmap);
+            }
+            DeleteObject(myBitmap);
 
             // 도착지점 그리기
-            Rectangle(hdc, g_Finish.left, g_Finish.top, g_Finish.right, g_Finish.bottom);
+            myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_WINGATE));
+            oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+            BitBlt(hdc, g_Finish.left, g_Finish.top, 64, 150, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+            SelectObject(imageDC, oldBitmap);
+            DeleteObject(myBitmap);
 
+            
             // 구름 그리기
             for (int i = 0; i < g_cloudobjNum; i++) {
-                Rectangle(hdc, g_cloudobj[i].left, g_cloudobj[i].top, g_cloudobj[i].right, g_cloudobj[i].bottom);
+                if (i == 0) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_CLOUD01));
+                }
+                else if(i == 1) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_HITCLOUD01));
+                }
+                else if (i == 2) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_HITCLOUD02));
+                }
+                else if (i == 3) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_HITCLOUD03));
+                }
+                oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                BitBlt(hdc, g_cloudobj[i].left, g_cloudobj[i].top, 120, 50, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                SelectObject(imageDC, oldBitmap);
+                DeleteObject(myBitmap);
             }
 
             MoveMyCharacter();
@@ -598,15 +638,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             wsprintfW(Test, L"%d || %d", g_obs[0].top, myCharacterRect.bottom + g_JumpHeight);
             TextOut(hdc, 20, 20, Test, lstrlenW(Test));
+            wsprintfW(Test, L"%d || %d || %d || %d", g_bottom.left, myClientRect.right, g_bottom.top, g_bottom.bottom);
+            TextOut(hdc, 40, 40, Test, lstrlenW(Test));
 
-
-            myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
-
-            if (lookForCharacter == 1) {
-                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
+            //내 캐릭 살았을때랑 죽었을때
+            if (live) {
+                if (lookForCharacter == 1) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
+                }
+                else if (lookForCharacter == 2) {
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER01));
+                }
             }
-            else if (lookForCharacter == 2) {
-                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER01));
+            else {
+                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTERHIT01));
             }
 
             oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
@@ -614,6 +659,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SelectObject(imageDC, oldBitmap);
             DeleteObject(myBitmap);
 
+            ReleaseDC(hWnd, imageDC);
             InvalidateRect(hWnd, NULL, FALSE);
         }
 
@@ -906,7 +952,7 @@ void CharacterDrop() {
                 g_JumpPower = JumpPower;
                 g_JumpHeight = JumpHeight;
                 g_Gravity = Gravity;
-                myCharacterRect.bottom = CrashBottom.top;
+                myCharacterRect.bottom = CrashBottom.top - g_JumpPower * 4;
                 myCharacterRect.top = myCharacterRect.bottom - 48;
                 jumping = FALSE;
                 top = FALSE;

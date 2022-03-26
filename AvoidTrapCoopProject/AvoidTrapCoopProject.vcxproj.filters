@@ -60,5 +60,35 @@
     <Image Include="Image\MyCharacterMainLeft.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="Image\Cloud01.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\HitCloud01.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\HitCloud02.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\HitCloud03.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\MyCharacterMainHit.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\Bottom.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\Bottom01.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\Bottom02.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\ObsThorn01.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Image\WinGate.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
   </ItemGroup>
 </Project>

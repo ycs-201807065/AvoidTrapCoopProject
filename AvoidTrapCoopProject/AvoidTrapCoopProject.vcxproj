@@ -155,8 +155,18 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="AvoidTrapCoopProject.ico" />
+    <Image Include="Image\Bottom.bmp" />
+    <Image Include="Image\Bottom01.bmp" />
+    <Image Include="Image\Bottom02.bmp" />
+    <Image Include="Image\Cloud01.bmp" />
+    <Image Include="Image\HitCloud01.bmp" />
+    <Image Include="Image\HitCloud02.bmp" />
+    <Image Include="Image\HitCloud03.bmp" />
     <Image Include="Image\MyCharacterMain.bmp" />
+    <Image Include="Image\MyCharacterMainHit.bmp" />
     <Image Include="Image\MyCharacterMainLeft.bmp" />
+    <Image Include="Image\ObsThorn01.bmp" />
+    <Image Include="Image\WinGate.bmp" />
     <Image Include="small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
