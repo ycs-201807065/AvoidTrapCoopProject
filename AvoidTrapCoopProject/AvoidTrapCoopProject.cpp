@@ -22,6 +22,7 @@ MyCharacter* myCharacter = new MyCharacter();
 /// 인트형 변수
 int gameStarter;  //게임 시작했는지 확인용
 int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
+int hungerCount;  //배고픔
 
 const int JumpPower = 275;          // 점프의 힘(상수)
 const int Gravity = 4;              // 점프 후 내려오는 힘(상수)
@@ -320,6 +321,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             gameStarter = 1;
             lookForCharacter = 2;
+            hungerCount = 7000;
 
             // 바닥 생성
             g_bottom.left = 0;
@@ -430,15 +432,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 g_obsDrop[i + 1].top = g_obsDrop[i + 1].bottom - 1;
             }
 
+            //바닥 처리기 테스트용 범위 수정점(top,bottom -1 이였는데 -3으로 바꿔줌)
             // 장애물[바닥] 생성
             for (int i = 0; i < g_obsBottomNum; i++) {
                 g_obsBottomRect[i].left = g_obsBottomRectLeft[i];
-                g_obsBottomRect[i].top = g_obsBottomRectTop[i] - 1;
+                g_obsBottomRect[i].top = g_obsBottomRectTop[i] - 3;
                 g_obsBottomRect[i].right = g_obsBottomRectRight[i];
-                g_obsBottomRect[i].bottom = g_obsBottomRectBottom[i] - 1;
+                g_obsBottomRect[i].bottom = g_obsBottomRectBottom[i] - 3;
             }
 
-            
+
             // 장애물[바닥] 낙하 영역 생성
             for (int i = 0; i < g_obsBottomNum; i++) {
                 // top
@@ -447,8 +450,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 g_obsBottomDrop[i].right = g_obsBottomRectRight[i];
                 g_obsBottomDrop[i].bottom = g_obsBottomRectBottom[i];
             }
-            
-            
+
+
             // 장애물[가시] 생성
             for (int i = 0; i < g_obsThornNum * 3; i++) {
                 g_obsThorn[i].left = g_obsThornLeft[i];
@@ -549,7 +552,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 move_Left = TRUE;
                 break;
             case 0x57:
-                myCharacter->Debuff(5);
+                myCharacterRect.left = 1400;
+                myCharacterRect.top = 300;
+                myCharacterRect.right = 1448;
+                myCharacterRect.bottom = 348;
                 break;
             case VK_UP:
             case VK_SPACE:
@@ -599,7 +605,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             imageDC = CreateCompatibleDC(hdc);
 
             // 표시 속도 조절
-            Sleep(10);
+            Sleep(15);
 
             // 플레이어 그리기
             //Rectangle(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, myCharacterRect.right, myCharacterRect.bottom + g_JumpHeight);
@@ -613,30 +619,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             /// ↓가시 그리는 부분(비트맵 수정 완료되면 지우기)↓
             /// ↓가시 그리는 부분(비트맵 수정 완료되면 지우기)↓
 
-            for (int i = 1; i < (g_obsThornNum * 3); (i += 3)) {
-                MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
-                LineTo(hdc, g_obsThorn[i - 1].left, g_obsThorn[i - 1].top);
-                MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
-                LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
+            for (int i = 13; i < (g_obsThornNum * 3); (i += 3)) {
+
+                    //마지막 가시 그려주기
+                    MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
+                    LineTo(hdc, g_obsThorn[i - 1].left, g_obsThorn[i - 1].top);
+                    MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
+                    LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
+
+                    //첫번째 함정 발동
+                    if (TRUE == Active_Trap[0]) {
+                        myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
+                        oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                        BitBlt(hdc, 265, g_obsThorn[i].top, 96, 29, imageDC, 0, 0, SRCCOPY);  //첫번째 가시함정 위치
+                        SelectObject(imageDC, oldBitmap);
+                        DeleteObject(myBitmap);
+                    }
             }
             
             /// ↑가시 그리는 부분(비트맵 수정 완료되면 지우기)↑
             /// ↑가시 그리는 부분(비트맵 수정 완료되면 지우기)↑
 
+            
 
             for (int i = 0; i < g_obsNum; i++) {
                 //if (TRUE == obsVisible[i]) {
-                    Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
+                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
                 //}
                 //실험용 가시(위치알면 제대로 바꾸기)
                 if (i == 0) {
+                    //큼지막한 4개
                     myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
                     oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
-                    BitBlt(hdc, g_obs[i].left+1, (g_bottom.top - 30), 96, 29, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                    BitBlt(hdc, g_obs[i].left + 1, (g_bottom.top - 30), 96, 29, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
                     SelectObject(imageDC, oldBitmap);
                     DeleteObject(myBitmap);
+                    /*
+                    //작은 1개
+                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
+                    oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                    BitBlt(hdc, 1412, 449, 4, 1, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                    SelectObject(imageDC, oldBitmap);
+                    DeleteObject(myBitmap);
+                    */
                 }
             }
+
+
+
             for (int i = 1; i < g_itemBoxNum; i++) {
                 Rectangle(hdc, g_ItemBox[i].left, g_ItemBox[i].top, g_ItemBox[i].right, g_ItemBox[i].bottom);
             }
@@ -645,20 +675,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 Rectangle(hdc, g_ItemBox[0].left, g_ItemBox[0].top, g_ItemBox[0].right, g_ItemBox[0].bottom);
             }
 
-            /// ※테스트 후 삭제
-
-            wsprintfW(Test, L"%d || %d", g_ItemCrash[0].top, myCharacterRect.bottom + g_JumpHeight);
-            TextOut(hdc, 20, 20, Test, lstrlenW(Test));
-            wsprintfW(Test, L"%d || %d || %d || %d", g_bottom.left, myClientRect.right, g_bottom.top, g_bottom.bottom);
-            TextOut(hdc, 40, 40, Test, lstrlenW(Test));
-
-                // 트랩 발동 조건 영역 그리기
+            // 트랩 발동 조건 영역 그리기
             for (int i = 0; i < 2; i++) {
-                Rectangle(hdc, g_TrapConfirm[i].left, g_TrapConfirm[i].top, g_TrapConfirm[i].right, g_TrapConfirm[i].bottom);
+                //Rectangle(hdc, g_TrapConfirm[i].left, g_TrapConfirm[i].top, g_TrapConfirm[i].right, g_TrapConfirm[i].bottom);
             }
 
             for (int i = 0; i < g_obsBottomNum; i++) {
-                Rectangle(hdc, g_obsBottomRect[i].left, g_obsBottomRect[i].top, g_obsBottomRect[i].right, g_obsBottomRect[i].bottom);
+                //Rectangle(hdc, g_obsBottomRect[i].left, g_obsBottomRect[i].top, g_obsBottomRect[i].right, g_obsBottomRect[i].bottom);
             }
 
             /// ※테스트 후 삭제
@@ -685,13 +708,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SelectObject(imageDC, oldBitmap);
             DeleteObject(myBitmap);
 
-            
+
             // 구름 그리기
             for (int i = 0; i < g_cloudobjNum; i++) {
                 if (i == 0) {
                     myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_CLOUD01));
                 }
-                else if(i == 1) {
+                else if (i == 1) {
                     myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_HITCLOUD01));
                 }
                 else if (i == 2) {
@@ -715,6 +738,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             //내 캐릭 살았을때랑 죽었을때
             if (live) {
+                hungerCount--;  //살아있으면 배고파야지
                 if (lookForCharacter == 1) {
                     myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTER02));
                 }
@@ -726,11 +750,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_MYCHARACTERHIT01));
             }
 
+            //11시 방향 UI
+            wsprintfW(Test, L"배고픔 : %d  // test용 %d %d  %d %d", hungerCount, myCharacterRect.top, myCharacterRect.bottom, g_obsBottomRect[2].top, g_obsBottomRect[2].bottom);
+            TextOut(hdc, 20, 20, Test, lstrlenW(Test));
             oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
             BitBlt(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, 48, 48, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
             SelectObject(imageDC, oldBitmap);
             DeleteObject(myBitmap);
             ReleaseDC(hWnd, imageDC);
+
         }
 
         // End TODO
@@ -921,7 +949,7 @@ void CharacterStatus(HWND statusHWND) {
             return;
         }
     }
-
+    /* 원본 바닥 처리기
     /// 장애물[바닥]과 닿았을 때 처리
     for (int i = 0; i < g_obsBottomNum; i++) {
 
@@ -970,6 +998,35 @@ void CharacterStatus(HWND statusHWND) {
             }
         }
     }
+    */
+
+    ///바닥 처리기 테스트용 범위 시작
+    ////바닥에 닿고 점프 안하면 바로 사망하게 하기
+    ////진흙탕같은 컨셉(점점 빠지고 안죽기위해선 계속 점프하며 탈출해야함)
+    for (int i = 0; i < g_obsBottomNum; i++) {
+
+        // 장애물[바닥]과 닿았을 때
+        if (IntersectRect(&ObsBottomCrash, &myCharacterRect, &g_obsBottomRect[i]) == TRUE && TRUE == live) {
+
+            g_JumpPower = JumpPower;
+            g_JumpHeight = JumpHeight;
+            g_Gravity = Gravity;
+
+            //내려가라 내려가라
+            myCharacterRect.bottom++;
+            myCharacterRect.top = myCharacterRect.bottom - 48;
+            
+        }
+    }
+
+    // 플레이어, 바닥 떨어짐 처리(내 캐릭 머리가 땅바닥 머리보다 아래있으면 죽게하기
+    if (myCharacterRect.top >= g_bottom.top) {
+        live = FALSE;
+        DropObsBottom = FALSE;
+        return;
+    }
+
+    ///바닥 처리기 테스트용 범위 끝
 
     // 발판과 닿았을 때 처리
     for (int i = 0; i < g_scafNum * 2; i++) {
