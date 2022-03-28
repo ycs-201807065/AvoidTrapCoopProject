@@ -23,7 +23,7 @@ MyCharacter* myCharacter = new MyCharacter();
 int gameStarter;  //게임 시작했는지 확인용
 int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
 
-const int JumpPower = 220;          // 점프의 힘(상수)
+const int JumpPower = 275;          // 점프의 힘(상수)
 const int Gravity = 4;              // 점프 후 내려오는 힘(상수)
 const int JumpHeight = 0;           // 점프 높이(상수)
 
@@ -32,7 +32,8 @@ int g_Gravity = Gravity;                      // 점프 후 내려오는 속도(
 int g_JumpHeight = JumpHeight;                // 점프 높이
 
 const int g_scafNum = 8;           // 발판 개수
-const int g_obsNum = 10;            // 장애물 개수
+const int g_obsNum = 7;            // 장애물 개수
+const int g_obsBottomNum = 3;       // 장애물[바닥] 개수
 const int g_obsThornNum = 5;       // 장애물[가시] 개수
 const int g_itemBoxNum = 3;         // 아이템 박스 개수
 const int g_cloudobjNum = 4;        // 구름 개수
@@ -44,8 +45,14 @@ extern int g_scafRectTop[g_scafNum];    // 발판 렉트 탑
 // 장애물 좌표 [Project_Coordinate.ccp]
 extern int g_obsRectLeft[g_obsNum];     // 장애물 렉트 레프트
 extern int g_obsRectTop[g_obsNum];      // 장애물 렉트 탑
-extern int g_obsRectRight[g_obsNum];    //장애물 렉트 라이트
-extern int g_obsRectBottom[g_obsNum];   //장애물 렉트 바텀
+extern int g_obsRectRight[g_obsNum];    // 장애물 렉트 라이트
+extern int g_obsRectBottom[g_obsNum];   // 장애물 렉트 바텀
+
+// 장애물[바닥] 좌표 [Project_Coordinate.ccp]
+extern int g_obsBottomRectLeft[g_obsBottomNum];         // 장애물 바닥 렉트 레프트
+extern int g_obsBottomRectTop[g_obsBottomNum];          // 장애물 바닥 렉트 탑
+extern int g_obsBottomRectRight[g_obsBottomNum];        // 장애물 바닥 렉트 라이트
+extern int g_obsBottomRectBottom[g_obsBottomNum];       // 장애물 바닥 렉트 바텀
 
 // 장애물[가시] 좌표 [Project_Coordinate.ccp]
 extern int g_obsThornLeft[g_obsThornNum * 3];   // 가시 렉트 레프트
@@ -72,11 +79,11 @@ int WinHeightS = 750;       // 창의 세로 크기
 
 
 
-/// 테스트변수
+/// 테스트
 
 WCHAR Test[128];
 
-/// 테스트변수
+/// 테스트
 
 
 /// 렉트
@@ -84,36 +91,47 @@ RECT myClientRect;                              // 게임 플레이 화면 렉�
 RECT myCharacterRect;                           // 내 캐릭터 렉트
 RECT NowmyCharacterRect;                        // 현재 내 캐릭터 위치
 RECT g_scaf[g_scafNum];                         // 발판
+RECT g_scafCrash[g_scafNum * 2];                // 발판 판정
 RECT g_scafDrop[g_scafNum * 2];                 // 발판 낙하 판정
 RECT g_obs[g_obsNum];                           // 장애물
 RECT g_obsCrash[g_obsNum * 4];                  // 장애물 판정
 RECT g_obsDrop[g_obsNum * 2];                   // 장애물 낙하 판정
+RECT g_obsBottomRect[g_obsBottomNum];           // 장애물[바닥]
+RECT g_obsBottomDrop[g_obsBottomNum];           // 장애물[바닥] 낙하 영역
 RECT g_obsThorn[g_obsThornNum * 3];             // 장애물[가시]
 RECT g_bottom;                                  // 바닥
 RECT g_ItemBox[g_itemBoxNum];                   // 아이템 박스
 RECT g_ItemCrash[(g_itemBoxNum - 1) * 4];       // 아이템 박스 판정
 RECT g_ItemDrop[(g_itemBoxNum - 1) * 2];        // 아이템 박스 낙하 판정
-RECT g_TrapConfirm[3];                          // 트랩 발동 조건 영역
+RECT g_TrapConfirm[2];                          // 트랩 발동 조건 영역6
 RECT g_Finish;                                  // 도착지점
 RECT g_cloudobj[g_cloudobjNum];                 // 구름(0번째는 오브젝트, 나머지는 함정)
 
 /// 불
+BOOL Finish = FALSE;                            // 플레이어가 도착지점에 도착했는지 여부
+BOOL Finish_op = FALSE;                         // 도착 트리거 한번만 발동하게 설정
 BOOL move_Left = FALSE;                         // 좌측으로 이동하는지 여부
 BOOL move_Right = FALSE;                        // 우측으로 이동하는지 여부
 BOOL jumping = FALSE;                           // 점프를 했는지 여부
 BOOL drop = FALSE;                              // 낙하중인지 여부
 BOOL top = FALSE;                               // 플레이어가 상단에 위치중인지 여부
+BOOL bottom = TRUE;                             // 플레이어의 위치가 바닥인지 여부
 BOOL scaf = FALSE;                              // 플레이어의 위치가 발판인지 여부
 BOOL live = TRUE;                               // 플레이어의 생존 여부
-BOOL ActItem = FALSE;                           // 아이템 활성화 여부
-BOOL Active_item = FALSE;;                      // 아이템 이동 여부
+BOOL ActItem = FALSE;                           // 1번 아이템 활성화 여부
+BOOL Active_item = FALSE;;                      // 1번 아이템 이동 여부
+BOOL ActItem2 = FALSE;                          // 2번 아이템 활성화 여부
+BOOL DropObsBottom = FALSE;                     // 장애물[바닥] 떨어짐 여부
+BOOL obsVisible[g_obsNum];                      // 장애물 보임 & 활성화 여부
+BOOL imp_op = TRUE;                             // 조작 가능 여부
+BOOL Active_Trap[2];                            // 트랩 작동 여부
 
 /// 함수
-void MoveMyCharacter();                     // 캐릭터 이동 처리
-void JumpMyCharacter(HWND moveHWND);        // 캐릭터 점프 처리
-void CharacterStatus(HWND statusHWND);      // 캐릭터 상태(현재위치, 장애물, 발판)에 대한 처리
-void CharacterDrop();                       // 캐릭터 낙하 처리
-void ItemBoxSet();                          // 아이템 박스 처리
+void MoveMyCharacter(HWND moveHWND);            // 캐릭터 이동 처리
+void JumpMyCharacter(HWND jumpHWND);            // 캐릭터 점프 처리
+void CharacterStatus(HWND statusHWND);          // 캐릭터 상태(현재위치, 장애물, 발판)에 대한 처리
+void CharacterDrop(HWND dropHWND);              // 캐릭터 낙하 처리
+void ItemBoxSet(HWND itemHWND);                 // 아이템 박스 처리
 
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
@@ -329,6 +347,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 g_scaf[i].bottom = g_bottom.top;
             }
 
+            // 발판 판정 생성
+            for (int i = 0; i < g_scafNum * 2; (i += 2)) {
+
+                // left
+                g_scafCrash[i].right = g_scaf[i / 2].left - 1;
+                g_scafCrash[i].bottom = g_scaf[i / 2].bottom - 1;
+                g_scafCrash[i].left = g_scafCrash[i].right - 1;
+                g_scafCrash[i].top = g_scaf[i / 2].top + 1;
+
+                // right
+                g_scafCrash[i + 1].left = g_scaf[i / 2].right + 1;
+                g_scafCrash[i + 1].top = g_scaf[i / 2].top + 1;
+                g_scafCrash[i + 1].right = g_scafCrash[i + 1].left + 1;
+                g_scafCrash[i + 1].bottom = g_scaf[i / 2].bottom - 1;
+            }
+
             // 발판 낙하 판정 생성
             for (int i = 0; i < g_scafNum * 2; (i += 2)) {
                 // left
@@ -396,6 +430,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 g_obsDrop[i + 1].top = g_obsDrop[i + 1].bottom - 1;
             }
 
+            // 장애물[바닥] 생성
+            for (int i = 0; i < g_obsBottomNum; i++) {
+                g_obsBottomRect[i].left = g_obsBottomRectLeft[i];
+                g_obsBottomRect[i].top = g_obsBottomRectTop[i] - 1;
+                g_obsBottomRect[i].right = g_obsBottomRectRight[i];
+                g_obsBottomRect[i].bottom = g_obsBottomRectBottom[i] - 1;
+            }
+
+            
+            // 장애물[바닥] 낙하 영역 생성
+            for (int i = 0; i < g_obsBottomNum; i++) {
+                // top
+                g_obsBottomDrop[i].left = g_obsBottomRectLeft[i];
+                g_obsBottomDrop[i].top = g_obsBottomRectTop[i];
+                g_obsBottomDrop[i].right = g_obsBottomRectRight[i];
+                g_obsBottomDrop[i].bottom = g_obsBottomRectBottom[i];
+            }
+            
+            
             // 장애물[가시] 생성
             for (int i = 0; i < g_obsThornNum * 3; i++) {
                 g_obsThorn[i].left = g_obsThornLeft[i];
@@ -455,7 +508,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             // 트랩 발동 조건 영역 생성
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 2; i++) {
                 g_TrapConfirm[i].left = g_TrapConfirmLeft[i];
                 g_TrapConfirm[i].top = g_TrapConfirmTop[i];
                 g_TrapConfirm[i].right = g_TrapConfirmRight[i];
@@ -485,7 +538,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_KEYDOWN:
     {
-        if (gameStarter == 1 && TRUE == live) {
+        if (gameStarter == 1 && TRUE == live && TRUE == imp_op) {
             switch (wParam) {
             case VK_RIGHT:
                 lookForCharacter = 2;
@@ -501,6 +554,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case VK_UP:
             case VK_SPACE:
                 jumping = TRUE;
+                bottom = FALSE;
                 break;
             }
         }
@@ -508,7 +562,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
 
     case WM_KEYUP:
-        if (gameStarter == 1 && TRUE == live) {
+        if (gameStarter == 1 && TRUE == live && TRUE == imp_op) {
             switch (wParam) {
             case VK_LEFT:
                 move_Left = FALSE;
@@ -543,9 +597,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (gameStarter == 1) {
             imageDC = CreateCompatibleDC(hdc);
+
             // 표시 속도 조절
             Sleep(10);
 
+            // 플레이어 그리기
             //Rectangle(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, myCharacterRect.right, myCharacterRect.bottom + g_JumpHeight);
 
             // 발판, 장애물[가시], 장애물, 아이템박스 그리기
@@ -553,15 +609,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 Rectangle(hdc, g_scaf[i].left, g_scaf[i].top, g_scaf[i].right, g_scaf[i].bottom);
             }
 
+
+            /// ↓가시 그리는 부분(비트맵 수정 완료되면 지우기)↓
+            /// ↓가시 그리는 부분(비트맵 수정 완료되면 지우기)↓
+
             for (int i = 1; i < (g_obsThornNum * 3); (i += 3)) {
                 MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
                 LineTo(hdc, g_obsThorn[i - 1].left, g_obsThorn[i - 1].top);
                 MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
                 LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
             }
+            
+            /// ↑가시 그리는 부분(비트맵 수정 완료되면 지우기)↑
+            /// ↑가시 그리는 부분(비트맵 수정 완료되면 지우기)↑
+
 
             for (int i = 0; i < g_obsNum; i++) {
-                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
+                //if (TRUE == obsVisible[i]) {
+                    Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
+                //}
                 //실험용 가시(위치알면 제대로 바꾸기)
                 if (i == 0) {
                     myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
@@ -580,9 +646,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             /// ※테스트 후 삭제
+
+            wsprintfW(Test, L"%d || %d", g_ItemCrash[0].top, myCharacterRect.bottom + g_JumpHeight);
+            TextOut(hdc, 20, 20, Test, lstrlenW(Test));
+            wsprintfW(Test, L"%d || %d || %d || %d", g_bottom.left, myClientRect.right, g_bottom.top, g_bottom.bottom);
+            TextOut(hdc, 40, 40, Test, lstrlenW(Test));
+
                 // 트랩 발동 조건 영역 그리기
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 2; i++) {
                 Rectangle(hdc, g_TrapConfirm[i].left, g_TrapConfirm[i].top, g_TrapConfirm[i].right, g_TrapConfirm[i].bottom);
+            }
+
+            for (int i = 0; i < g_obsBottomNum; i++) {
+                Rectangle(hdc, g_obsBottomRect[i].left, g_obsBottomRect[i].top, g_obsBottomRect[i].right, g_obsBottomRect[i].bottom);
             }
 
             /// ※테스트 후 삭제
@@ -630,16 +706,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DeleteObject(myBitmap);
             }
 
-            MoveMyCharacter();
+            // 함수 호출
+            MoveMyCharacter(hWnd);
             JumpMyCharacter(hWnd);
             CharacterStatus(hWnd);
-            CharacterDrop();
-            ItemBoxSet();
-
-            wsprintfW(Test, L"%d || %d", g_obs[0].top, myCharacterRect.bottom + g_JumpHeight);
-            TextOut(hdc, 20, 20, Test, lstrlenW(Test));
-            wsprintfW(Test, L"%d || %d || %d || %d", g_bottom.left, myClientRect.right, g_bottom.top, g_bottom.bottom);
-            TextOut(hdc, 40, 40, Test, lstrlenW(Test));
+            CharacterDrop(hWnd);
+            ItemBoxSet(hWnd);
 
             //내 캐릭 살았을때랑 죽었을때
             if (live) {
@@ -658,9 +730,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             BitBlt(hdc, myCharacterRect.left, myCharacterRect.top + g_JumpHeight, 48, 48, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
             SelectObject(imageDC, oldBitmap);
             DeleteObject(myBitmap);
-
             ReleaseDC(hWnd, imageDC);
-            InvalidateRect(hWnd, NULL, FALSE);
         }
 
         // End TODO
@@ -706,8 +776,8 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void MoveMyCharacter() {
-    if (move_Left && live) {
+void MoveMyCharacter(HWND moveHWND) {
+    if (move_Left && live && imp_op) {
         myCharacterRect.left -= 5;
         myCharacterRect.right -= 5;
     }
@@ -715,22 +785,30 @@ void MoveMyCharacter() {
         myCharacterRect.left += 5;
         myCharacterRect.right += 5;
     }
+    InvalidateRect(moveHWND, NULL, FALSE);
 }
 
-void JumpMyCharacter(HWND moveHWND) {
+void JumpMyCharacter(HWND jumpHWND) {
     RECT CrashBottom;
     RECT ObsCrash;
 
     // 점프중이라면
-    if (jumping && live) {
+    if (jumping && live && imp_op) {
+        top = FALSE;
+        scaf = FALSE;
+
+        if (TRUE == DropObsBottom && g_bottom.top >= NowmyCharacterRect.bottom) {
+            DropObsBottom = FALSE;
+        }
 
         // 점프 중 바닥과 닿으면 변화 값 초기상태로 복구
-        if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
+        if (IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect) && FALSE == DropObsBottom) {
             g_JumpPower = JumpPower;
             g_JumpHeight = JumpHeight;
             myCharacterRect.bottom = CrashBottom.top;
             myCharacterRect.top = myCharacterRect.bottom - 48;
             jumping = FALSE;
+            bottom = TRUE;
             return;
         }
 
@@ -738,15 +816,19 @@ void JumpMyCharacter(HWND moveHWND) {
         g_JumpHeight -= g_JumpPower * 0.04;
         g_JumpPower -= g_Gravity * 4;
     }
+    InvalidateRect(jumpHWND, NULL, FALSE);
 }
 
 void CharacterStatus(HWND statusHWND) {
-    RECT CloudCrash;    // 구름 닿은 영역 확인용
-    RECT ObsCrash;      // 장애물 닿은 영역 확인용
-    RECT ScafCrash;     // 발판과 닿은 영역 확인용
-    RECT ThornCrash;    // 장애물[가시]와 닿은 영역 확인용
-    RECT ItemCrash;     // 아이템 박스와 닿은 영역 확인용
-    RECT dst;           // 임시용
+    RECT CloudCrash;        // 구름 닿은 영역 확인용
+    RECT ObsCrash;          // 장애물 닿은 영역 확인용
+    RECT ObsBottomCrash;    // 장애물[바닥] 닿은 영역 확인용
+    RECT ScafCrash;         // 발판과 닿은 영역 확인용
+    RECT ThornCrash;        // 장애물[가시]와 닿은 영역 확인용
+    RECT ItemCrash;         // 아이템 박스와 닿은 영역 확인용
+    RECT dst;               // 임시용
+
+    BOOL active = FALSE;    // 장애물[바닥] 낙하 활성화 여부
 
     // 현재 캐릭터의 위치 저장
     NowmyCharacterRect.top = myCharacterRect.top + g_JumpHeight;
@@ -754,16 +836,30 @@ void CharacterStatus(HWND statusHWND) {
     NowmyCharacterRect.bottom = myCharacterRect.bottom + g_JumpHeight;
     NowmyCharacterRect.right = myCharacterRect.right;
 
+    // 플레이어가 도착지점과 닿았을 때 처리
+    if (IntersectRect(&dst, &NowmyCharacterRect, &g_Finish) && Finish_op == FALSE) {
+        Finish = TRUE;
+    }
+
+    if (TRUE == Finish) {
+        MessageBox(statusHWND, L"승리", L"도착", NULL);
+        Finish = FALSE;
+        imp_op = FALSE;
+        Finish_op = TRUE;
+    }
+
     // 구름 함정과 닿았을 때 처리
     for (int i = 1; i < g_cloudobjNum; i++) {
         if (TRUE == IntersectRect(&CloudCrash, &NowmyCharacterRect, &g_cloudobj[i]) && TRUE == live) {
-            MessageBox(statusHWND, L"죽음", L"구름", NULL);
+            live = FALSE;
+            //MessageBox(statusHWND, L"죽음", L"구름", NULL);
         }
     }
 
     // 장애물[가시]와 닿았을 때 처리
     for (int i = 0; i < g_obsThornNum * 3; i++) {
         if (IntersectRect(&ThornCrash, &NowmyCharacterRect, &g_obsThorn[i]) && TRUE == live) {
+            live = FALSE;
             //MessageBox(statusHWND, L"죽음", L"가시", NULL);
         }
     }
@@ -803,6 +899,7 @@ void CharacterStatus(HWND statusHWND) {
 
             // 아래쪽과 닿았을 때
             if ((ObsCrash.top + 10) > ObsCrash.bottom && g_obs[i / 4].bottom > myCharacterRect.top && IntersectRect(&dst, &NowmyCharacterRect, &g_obsCrash[i + 3])) {
+                obsVisible[i / 4] = TRUE;
                 drop = TRUE;
                 return;
             }
@@ -810,7 +907,7 @@ void CharacterStatus(HWND statusHWND) {
 
         // 왼쪽으로 떨어질 때
         if (IntersectRect(&dst, &NowmyCharacterRect, &g_obsDrop[i / 2]) && TRUE == top && FALSE == scaf && TRUE == live) {
-            if (FALSE == jumping) {
+            if (FALSE == jumping && FALSE == bottom) {
                 drop = TRUE;
             }
             return;
@@ -818,35 +915,84 @@ void CharacterStatus(HWND statusHWND) {
 
         // 오른쪽으로 떨어질 때
         if (IntersectRect(&dst, &NowmyCharacterRect, &g_obsDrop[(i / 2) + 1]) && TRUE == top && FALSE == scaf && TRUE == live) {
-            if (FALSE == jumping) {
+            if (FALSE == jumping && FALSE == bottom) {
                 drop = TRUE;
             }
             return;
         }
     }
 
-    // 발판과 닿았을 때 처리
-    for (int i = 0; i < g_scafNum; i++) {
+    /// 장애물[바닥]과 닿았을 때 처리
+    for (int i = 0; i < g_obsBottomNum; i++) {
 
-        if (IntersectRect(&ScafCrash, &NowmyCharacterRect, &g_scaf[i]) && TRUE == live) {
+        // 장애물[바닥]과 닿았을 때
+        if (IntersectRect(&ObsBottomCrash, &NowmyCharacterRect, &g_obsBottomRect[i]) == TRUE && TRUE == live) {
+
+            g_JumpPower = JumpPower;
+            g_JumpHeight = JumpHeight;
+            g_Gravity = Gravity;
+            jumping = FALSE;
+            drop = FALSE;
+            DropObsBottom = TRUE;
+            active = TRUE;
+
+            myCharacterRect.bottom = ObsBottomCrash.top;
+            myCharacterRect.top = myCharacterRect.bottom - 48;
+            return;
+        }
+
+        // 플레이어, 바닥 떨어짐 처리
+        if (TRUE == DropObsBottom) {
+            myCharacterRect.bottom = g_obsBottomRect[i].top;
+            myCharacterRect.top = myCharacterRect.bottom - 48;
+            g_obsBottomRect[i].top += 1;
+            g_obsBottomRect[i].bottom += 1;
+            if (FALSE == live) {
+                DropObsBottom = FALSE;
+                return;
+            }
+        }
+
+        /// 장애물[바닥]이 떨어지고 난 후 해당영역 재진입 시 낙하처리
+        if (TRUE == active) {
+            if (IntersectRect(&ObsBottomCrash, &NowmyCharacterRect, &g_obsBottomDrop[i]) == TRUE && TRUE == live) {
+                g_JumpPower = JumpPower;
+                g_JumpHeight = JumpHeight;
+                g_Gravity = Gravity;
+                jumping = FALSE;
+                drop = FALSE;
+                myCharacterRect.top += 5;
+                myCharacterRect.bottom += 5;
+                if (myCharacterRect.bottom == WinHeightS) {
+                    DropObsBottom = FALSE;
+                    live = FALSE;
+                }
+            }
+        }
+    }
+
+    // 발판과 닿았을 때 처리
+    for (int i = 0; i < g_scafNum * 2; i++) {
+
+        if (IntersectRect(&ScafCrash, &NowmyCharacterRect, &g_scaf[i / 2]) && TRUE == live) {
             drop = FALSE;
 
             // 왼쪽과 닿았을 때
-            if ((ScafCrash.left + 10) > ScafCrash.right && myCharacterRect.right > g_scaf[i].left) {
-                myCharacterRect.right = g_scaf[i].left - 1;
+            if ((ScafCrash.left + 10) > ScafCrash.right && myCharacterRect.right > g_scaf[i / 2].left && IntersectRect(&dst, &NowmyCharacterRect, &g_scafCrash[i])) {
+                myCharacterRect.right = g_scaf[i / 2].left - 1;
                 myCharacterRect.left = myCharacterRect.right - 48;
                 return;
             }
 
             // 오른쪽과 닿았을 때
-            if (ScafCrash.left > (ScafCrash.right - 10) && g_scaf[i].right > myCharacterRect.left) {
-                myCharacterRect.left = g_scaf[i].right + 1;
+            if (ScafCrash.left > (ScafCrash.right - 10) && g_scaf[i / 2].right > myCharacterRect.left && IntersectRect(&dst, &NowmyCharacterRect, &g_scafCrash[i + 1])) {
+                myCharacterRect.left = g_scaf[i / 2].right + 1;
                 myCharacterRect.right = myCharacterRect.left + 48;
                 return;
             }
 
             // 위쪽과 닿았을 때
-            if (ScafCrash.bottom > g_scaf[i].top) {
+            if (ScafCrash.bottom > g_scaf[i / 2].top) {
                 top = TRUE;
                 scaf = TRUE;
                 g_JumpPower = JumpPower;
@@ -861,7 +1007,7 @@ void CharacterStatus(HWND statusHWND) {
 
         // 왼쪽으로 떨어질 때
         if (IntersectRect(&dst, &NowmyCharacterRect, &g_scafDrop[i / 2]) && TRUE == top && TRUE == scaf && TRUE == live) {
-            if (FALSE == jumping) {
+            if (FALSE == jumping && FALSE == bottom) {
                 drop = TRUE;
             }
             return;
@@ -869,14 +1015,14 @@ void CharacterStatus(HWND statusHWND) {
 
         // 오른쪽으로 떨어질 때
         if (IntersectRect(&dst, &NowmyCharacterRect, &g_scafDrop[(i / 2) + 1]) && TRUE == top && TRUE == scaf && TRUE == live) {
-            if (FALSE == jumping) {
+            if (FALSE == jumping && FALSE == bottom) {
                 drop = TRUE;
             }
             return;
         }
     }
 
-    /// 아이템과 닿았을 때 처리
+    // 아이템과 닿았을 때 처리
     for (int i = 0; i < ((g_itemBoxNum - 1) * 4); (i += 4)) {
 
         if (IntersectRect(&ItemCrash, &NowmyCharacterRect, &g_ItemBox[i / 4]) == TRUE && TRUE == live) {
@@ -918,7 +1064,7 @@ void CharacterStatus(HWND statusHWND) {
 
         // 왼쪽으로 떨어질 때
         if (IntersectRect(&dst, &NowmyCharacterRect, &g_ItemDrop[i / 2]) && TRUE == top && FALSE == scaf && TRUE == live) {
-            if (FALSE == jumping) {
+            if (FALSE == jumping && FALSE == bottom) {
                 drop = TRUE;
             }
             return;
@@ -926,17 +1072,65 @@ void CharacterStatus(HWND statusHWND) {
 
         // 오른쪽으로 떨어질 때
         if (IntersectRect(&dst, &NowmyCharacterRect, &g_ItemDrop[(i / 2) + 1]) && TRUE == top && FALSE == scaf && TRUE == live) {
-            if (FALSE == jumping) {
+            if (FALSE == jumping && FALSE == bottom) {
                 drop = TRUE;
             }
             return;
         }
     }
+
+    // 트랩 발동 영역과 닿았을 때 분기 저장
+    for (int i = 0; i < 2; i++) {
+        if(IntersectRect(&dst, &NowmyCharacterRect, &g_TrapConfirm[i])){
+
+            if (Active_Trap[i] == TRUE) {
+                break;
+            }
+
+            if (i == 0) {
+                Active_Trap[0] = TRUE;
+                return;
+            }
+
+            if (i == 1) {
+                Active_Trap[1] = TRUE;
+                return;
+            }
+        }
+    }
+
+    // 가시 함정 위로 올라감
+    if (TRUE == Active_Trap[0]) {
+        for (int i = 0; i < g_obsThornNum * 3; i++) {
+            g_obsThorn[i].top -= 15;
+            g_obsThorn[i].bottom -= 15;
+
+            if (g_obsThorn[i].bottom < -300) {
+                Active_Trap[0] = FALSE;
+                break;
+            }
+        }
+    }
+
+    // 아이템 박스 위로 올라감
+    if (TRUE == Active_Trap[1]) {
+        g_ItemBox[2].top -= 10;
+        g_ItemBox[2].bottom -= 10;
+
+        if (g_ItemBox[2].bottom < -300) {
+            Active_Trap[1] = FALSE;
+        }
+    }
+
+    InvalidateRect(statusHWND, NULL, FALSE);
 }
 
-void CharacterDrop() {
+void CharacterDrop(HWND dropHWND) {
     RECT CrashBottom;
-    if (drop == TRUE && TRUE == live) {
+    RECT CrashObs;
+    RECT CrashItem;
+
+    if (drop == TRUE && TRUE == live && FALSE == bottom && TRUE == imp_op) {
         if (jumping == TRUE) {
             drop = FALSE;
         }
@@ -947,27 +1141,64 @@ void CharacterDrop() {
             g_JumpHeight += g_JumpPower * 4;
             g_JumpPower += g_Gravity * 4;
 
+            // 장애물과 닿았을 때
+            for (int i = 0; i < g_obsNum; i++) {
+                if (TRUE == IntersectRect(&CrashObs, &NowmyCharacterRect, &g_obs[i])) {
+                    g_JumpPower = JumpPower;
+                    g_JumpHeight = JumpHeight;
+                    g_Gravity = Gravity;
+                    myCharacterRect.bottom = CrashObs.top;
+                    myCharacterRect.top = myCharacterRect.bottom - 48;
+                    jumping = FALSE;
+                    top = FALSE;
+                    scaf = FALSE;
+                    drop = FALSE;
+                    bottom = TRUE;
+                    break;
+                }
+            }
+
+            // 아이템과 닿았을 때
+            for (int i = 0; i < (g_itemBoxNum - 1); i++) {
+                if (TRUE == IntersectRect(&CrashItem, &NowmyCharacterRect, &g_ItemBox[i])) {
+                    g_JumpPower = JumpPower;
+                    g_JumpHeight = JumpHeight;
+                    g_Gravity = Gravity;
+                    myCharacterRect.bottom = CrashItem.top;
+                    myCharacterRect.top = myCharacterRect.bottom - 48;
+                    jumping = FALSE;
+                    top = FALSE;
+                    scaf = FALSE;
+                    drop = FALSE;
+                    bottom = TRUE;
+                    break;
+                }
+            }
+
             // 바닥과 닿으면 점프 값 초기상태로 전환하고 플레이어 위치 조정
             if (TRUE == IntersectRect(&CrashBottom, &g_bottom, &NowmyCharacterRect)) {
                 g_JumpPower = JumpPower;
                 g_JumpHeight = JumpHeight;
                 g_Gravity = Gravity;
-                myCharacterRect.bottom = CrashBottom.top - g_JumpPower * 4;
+                myCharacterRect.bottom = CrashBottom.top;
                 myCharacterRect.top = myCharacterRect.bottom - 48;
                 jumping = FALSE;
                 top = FALSE;
+                scaf = FALSE;
                 drop = FALSE;
+                bottom = TRUE;
                 return;
             }
         }
     }
+    InvalidateRect(dropHWND, NULL, FALSE);
 }
 
-void ItemBoxSet() {
-    RECT item;  // 아이템 곂침 영역 확인용
-    RECT drop_item;     // 아이템과 플레이어의 곂침 영역 저장
-    RECT now_item;      // 떨어지는 아이템 좌표 저장
-    RECT item_bottom;   // 아이템 바닥 영역 저장
+void ItemBoxSet(HWND itemHWND) {
+    RECT item;                  // 아이템 곂침 영역 확인용
+    RECT drop_item;             // 아이템과 플레이어의 곂침 영역 저장
+    RECT now_item;              // 떨어지는 아이템 좌표 저장
+    RECT item_bottom;           // 아이템 바닥 영역 저장
 
     item_bottom.left = g_ItemBox[1].left;
     item_bottom.top = g_ItemBox[1].bottom + 1;
@@ -976,7 +1207,6 @@ void ItemBoxSet() {
 
     // 1번 아이템(먹으면 다른 아이템이 나옴)
     if (IntersectRect(&item, &NowmyCharacterRect, &item_bottom) && Active_item == FALSE) {
-        drop = TRUE;
         ActItem = TRUE;
         return;
     }
@@ -984,16 +1214,55 @@ void ItemBoxSet() {
     // 1번 아이템을 먹으면 다른 아이템이 나옴(발판용)
     if (TRUE == ActItem && Active_item == FALSE) {
         
+        // 아이템이 지속적으로 밑으로 이동함
         g_ItemBox[0].left -= 1;
         g_ItemBox[0].top += 1;
         g_ItemBox[0].right -= 1;
         g_ItemBox[0].bottom += 1;
 
+        // 플레이어와 아이템이 닿았을 시 해당위치에 아이템 위치 고정
         if (IntersectRect(&drop_item, &NowmyCharacterRect, &g_ItemBox[0]) && Active_item == FALSE) {
             g_ItemBox[0].left = NowmyCharacterRect.left;
             g_ItemBox[0].top = NowmyCharacterRect.top;
             g_ItemBox[0].right = g_ItemBox[0].left + 30;
             g_ItemBox[0].bottom = g_ItemBox[0].top + 30;
+
+            // top
+            g_ItemCrash[0].right = g_ItemBox[0].right - 1;
+            g_ItemCrash[0].bottom = g_ItemBox[0].top - 1;
+            g_ItemCrash[0].left = g_ItemBox[0].left + 1;
+            g_ItemCrash[0].top = g_ItemCrash[0].bottom - 1;
+
+            // left
+            g_ItemCrash[1].right = g_ItemBox[0].left - 1;
+            g_ItemCrash[1].bottom = g_ItemBox[0].bottom - 1;
+            g_ItemCrash[1].left = g_ItemCrash[1].right - 1;
+            g_ItemCrash[1].top = g_ItemBox[0].top + 1;
+
+            // right
+            g_ItemCrash[2].left = g_ItemBox[0].right + 1;
+            g_ItemCrash[2].top = g_ItemBox[0].top + 1;
+            g_ItemCrash[2].right = g_ItemCrash[2].left + 1;
+            g_ItemCrash[2].bottom = g_ItemBox[0].bottom - 1;
+
+            // bottom
+            g_ItemCrash[3].left = g_ItemBox[0].left + 1;
+            g_ItemCrash[3].top = g_ItemBox[0].bottom + 1;
+            g_ItemCrash[3].right = g_ItemBox[0].right + 1;
+            g_ItemCrash[3].bottom = g_ItemCrash[3].top + 1;
+
+            // left
+            g_ItemDrop[0].right = g_ItemBox[0].left - 30;
+            g_ItemDrop[0].bottom = g_ItemBox[0].top - 1;
+            g_ItemDrop[0].left = g_ItemDrop[0].right - 1;
+            g_ItemDrop[0].top = g_ItemDrop[0].bottom - 1;
+
+            // right
+            g_ItemDrop[1].left = g_ItemBox[0].right + 30;
+            g_ItemDrop[1].right = g_ItemDrop[1].left + 1;
+            g_ItemDrop[1].bottom = g_ItemBox[0].top - 1;
+            g_ItemDrop[1].top = g_ItemDrop[1].bottom - 1;
+
             Active_item = TRUE;
             return;
         }
@@ -1001,17 +1270,19 @@ void ItemBoxSet() {
 
     // 2번 아이템(먹으면 위로 올라가서 죽음)
     if (IntersectRect(&item, &NowmyCharacterRect, &g_ItemBox[2])) {
-        live = FALSE;
-        jumping = FALSE;
-        drop = FALSE;
-        top = FALSE;
-        scaf = FALSE;
+        ActItem2 = TRUE;
+        return;
+    }
 
-        while (myCharacterRect.bottom > 0) {
-            myCharacterRect.top -= 1;
-            myCharacterRect.bottom -= 1;
+    if (TRUE == ActItem2) {
+        myCharacterRect.top -= 10;
+        myCharacterRect.bottom -= 10;
+        if (myCharacterRect.top < 100) {
+            live = FALSE;
+            ActItem2 = FALSE;
         }
     }
+    InvalidateRect(itemHWND, NULL, FALSE);
 }
 
 /*
