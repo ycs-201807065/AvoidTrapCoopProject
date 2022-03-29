@@ -23,6 +23,7 @@ MyCharacter* myCharacter = new MyCharacter();
 int gameStarter;  //게임 시작했는지 확인용
 int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
 int hungerCount;  //배고픔
+int thornTrapCheck = 0;  //가시 트랩 작동했는가?
 
 const int JumpPower = 275;          // 점프의 힘(상수)
 const int Gravity = 4;              // 점프 후 내려오는 힘(상수)
@@ -278,7 +279,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             gameStarter = 1;
             lookForCharacter = 2;
-            hungerCount = 7000;
+            hungerCount = 4500;
+            thornTrapCheck = 0;
 
             // 바닥 생성
             g_bottom.left = 0;
@@ -535,57 +537,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             /// ↓가시 그리는 부분(비트맵 수정 완료되면 지우기)↓
             /// ↓가시 그리는 부분(비트맵 수정 완료되면 지우기)↓
-
+            /* 필요없을것같은 부분
             for (int i = 13; i < (g_obsThornNum * 3); (i += 3)) {
-
-                    //마지막 가시 그려주기
-                    MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
-                    LineTo(hdc, g_obsThorn[i - 1].left, g_obsThorn[i - 1].top);
-                    MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
-                    LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
-
-                    //첫번째 함정 발동
-                    if (TRUE == Active_Trap[0]) {
-                        myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
-                        oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
-                        BitBlt(hdc, 265, g_obsThorn[i].top, 96, 29, imageDC, 0, 0, SRCCOPY);  //첫번째 가시함정 위치
-                        SelectObject(imageDC, oldBitmap);
-                        DeleteObject(myBitmap);
-                    }
+                //마지막 가시 그려주기
+                MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
+                LineTo(hdc, g_obsThorn[i - 1].left, g_obsThorn[i - 1].top);
+                MoveToEx(hdc, g_obsThorn[i].left, g_obsThorn[i].top, NULL);
+                LineTo(hdc, g_obsThorn[i + 1].left, g_obsThorn[i + 1].top);
             }
-            
+            */
             /// ↑가시 그리는 부분(비트맵 수정 완료되면 지우기)↑
             /// ↑가시 그리는 부분(비트맵 수정 완료되면 지우기)↑
 
             
 
-            for (int i = 0; i < g_obsNum; i++) {
-                //if (TRUE == obsVisible[i]) {
-                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
-                //}
-                //실험용 가시(위치알면 제대로 바꾸기)
-                if (i == 0) {
-                    //큼지막한 4개
-                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
-                    oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
-                    BitBlt(hdc, g_obs[i].left + 1, (g_bottom.top - 30), 96, 29, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
-                    SelectObject(imageDC, oldBitmap);
-                    DeleteObject(myBitmap);
-                    /*
-                    //작은 1개
-                    myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
-                    oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
-                    BitBlt(hdc, 1412, 449, 4, 1, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
-                    SelectObject(imageDC, oldBitmap);
-                    DeleteObject(myBitmap);
-                    */
-                }
+            //가시 보이기
+            if (thornTrapCheck == 0) {
+                //큰 가시 보이기
+                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
+                oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                BitBlt(hdc, g_obs[0].left + 1, (g_bottom.top - 30), 96, 29, imageDC, 0, 0, SRCCOPY);  //비트맵 그려주기
+                SelectObject(imageDC, oldBitmap);
+                DeleteObject(myBitmap);
             }
-
-
+            //큰 가시 함정 발동
+            else if (thornTrapCheck == 1) {
+                myBitmap = LoadBitmap(hInst, MAKEINTATOM(IDB_BITMAP_OBSTHORN01));
+                oldBitmap = (HBITMAP)SelectObject(imageDC, myBitmap);
+                BitBlt(hdc, 265, g_obsThorn[0].top, 96, 29, imageDC, 0, 0, SRCCOPY);  //첫번째 가시함정 위치
+                SelectObject(imageDC, oldBitmap);
+                DeleteObject(myBitmap);
+            }
+            //작은 가시 보이기
+            Rectangle(hdc, 1412, 449, 1416, 450);
 
             for (int i = 1; i < g_itemBoxNum; i++) {
                 Rectangle(hdc, g_ItemBox[i].left, g_ItemBox[i].top, g_ItemBox[i].right, g_ItemBox[i].bottom);
+            }
+
+
+            //중앙 박스 2개 그리기
+            for (int i = 0; i < g_obsNum; i++) {
+                Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
             }
 
             if (TRUE == ActItem) {
@@ -713,8 +706,10 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 void MoveMyCharacter() {
     if (move_Left && live && imp_op) {
-        myCharacterRect.left -= 5;
-        myCharacterRect.right -= 5;
+        if (myCharacterRect.left >= 0) {
+            myCharacterRect.left -= 5;
+            myCharacterRect.right -= 5;
+        }
     }
     if (move_Right && live) {
         myCharacterRect.left += 5;
@@ -962,6 +957,7 @@ void CharacterStatus(HWND statusHWND) {
 
             if (i == 0) {
                 Active_Trap[0] = TRUE;
+                thornTrapCheck = 1;  //처음 가시 트랩 발동함
                 return;
             }
 
@@ -974,7 +970,7 @@ void CharacterStatus(HWND statusHWND) {
 
     // 가시 함정 위로 올라감
     if (TRUE == Active_Trap[0]) {
-        for (int i = 0; i < g_obsThornNum * 3; i++) {
+        for (int i = 0; i < 12; i++) {
             g_obsThorn[i].top -= 15;
             g_obsThorn[i].bottom -= 15;
 
@@ -993,6 +989,11 @@ void CharacterStatus(HWND statusHWND) {
         if (g_ItemBox[2].bottom < -300) {
             Active_Trap[1] = FALSE;
         }
+    }
+
+    //배고파서 사망
+    if (hungerCount <= 0) {
+        live = FALSE;
     }
 }
 
