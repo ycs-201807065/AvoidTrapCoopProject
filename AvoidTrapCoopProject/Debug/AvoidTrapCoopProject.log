@@ -1,5 +1,6 @@
 ﻿  AvoidTrapCoopProject.cpp
-C:\Users\jun\source\repos\AvoidTrapCoopProject\0328\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(850,43): warning C4244: '-=': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-C:\Users\jun\source\repos\AvoidTrapCoopProject\0328\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(827,10): warning C4101: 'ObsCrash' :참조되지 않은 지역 변수입니다.
-C:\Users\jun\source\repos\AvoidTrapCoopProject\0328\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(1260,10): warning C4101: 'now_item' :참조되지 않은 지역 변수입니다.
-  AvoidTrapCoopProject.vcxproj -> C:\Users\jun\source\repos\AvoidTrapCoopProject\0328\AvoidTrapCoopProject\Debug\AvoidTrapCoopProject.exe
+F:\edu\test\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(802,43): warning C4244: '-=': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+F:\edu\test\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(734,10): warning C4101: 'ObsCrash' :참조되지 않은 지역 변수입니다.
+F:\edu\test\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(1011,10): warning C4101: 'CrashObs' :참조되지 않은 지역 변수입니다.
+F:\edu\test\AvoidTrapCoopProject\AvoidTrapCoopProject\AvoidTrapCoopProject.cpp(1012,10): warning C4101: 'CrashItem' :참조되지 않은 지역 변수입니다.
+  AvoidTrapCoopProject.vcxproj -> F:\edu\test\AvoidTrapCoopProject\Debug\AvoidTrapCoopProject.exe
