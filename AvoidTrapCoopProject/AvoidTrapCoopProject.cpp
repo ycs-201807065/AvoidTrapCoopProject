@@ -5,10 +5,11 @@
 #include "AvoidTrapCoopProject.h"
 #include "MyCharacter.h"
 
+#include<time.h>
+
 #define MAX_LOADSTRING 100
 
 #define IDC_BTN_START 5000  //시작 버튼 ID
-#define IDC_BTN_HELP 5001  //도움말 버튼 ID
 #define IDC_BTN_EXIT 5002  //종료 버튼 ID
 
 /// 전역 변수:
@@ -24,6 +25,7 @@ int gameStarter;  //게임 시작했는지 확인용
 int lookForCharacter;  //내 캐릭터가 어디보는지 (1 왼쪽, 2 오른쪽)
 int hungerCount;  //배고픔
 int thornTrapCheck = 0;  //가시 트랩 작동했는가?
+int itemBoxTimer = 0;  //타이머 동작했는가?
 
 const int JumpPower = 275;          // 점프의 힘(상수)
 const int Gravity = 4;              // 점프 후 내려오는 힘(상수)
@@ -126,7 +128,7 @@ void MoveMyCharacter();                         // 캐릭터 이동 처리
 void JumpMyCharacter();                         // 캐릭터 점프 처리
 void CharacterStatus(HWND statusHWND);          // 캐릭터 상태(현재위치, 장애물, 발판)에 대한 처리
 void CharacterDrop();                           // 캐릭터 낙하 처리
-void ItemBoxSet();                              // 아이템 박스 처리
+void ItemBoxSet(HWND itemHWND);                 // 아이템 박스 처리
 
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
@@ -252,10 +254,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //내 게임에서 사용할 바텀, 탑 값 조정
         gameStartBtn = CreateWindow(L"button", L"게 임  시 작", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             (myClientRect.right / 2 - 125), 200, 250, 100, hWnd, (HMENU)IDC_BTN_START, NULL, NULL);
-        gameHelpBtn = CreateWindow(L"button", L"도 움 말", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            (myClientRect.right / 2 - 125), 350, 250, 100, hWnd, (HMENU)IDC_BTN_HELP, NULL, NULL);
         gameExitBtn = CreateWindow(L"button", L"종    료", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            (myClientRect.right / 2 - 125), 500, 250, 100, hWnd, (HMENU)IDC_BTN_EXIT, NULL, NULL);
+            (myClientRect.right / 2 - 125), 400, 250, 100, hWnd, (HMENU)IDC_BTN_EXIT, NULL, NULL);
         gameStarter = 0;
         //testHWND = hWnd;
     }
@@ -275,6 +275,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             lookForCharacter = 2;
             hungerCount = 4500;
             thornTrapCheck = 0;
+            itemBoxTimer = 0;
 
             // 바닥 생성
             g_bottom.left = 0;
@@ -480,7 +481,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
-
     case WM_PAINT:
     {
         static HDC hdc, MemDC, tmpDC;
@@ -543,6 +543,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 Rectangle(hdc, g_obs[i].left, g_obs[i].top, g_obs[i].right, g_obs[i].bottom);
             }
 
+            //짧은 아이템박스 무적타임
+            if (itemBoxTimer >= 1) {
+                if (itemBoxTimer >= 15) {
+                    ActItem = TRUE;
+                }
+                else {
+                    itemBoxTimer++;
+                }
+            }
+
             if (TRUE == ActItem) {
                 Rectangle(hdc, g_ItemBox[0].left, g_ItemBox[0].top, g_ItemBox[0].right, g_ItemBox[0].bottom);
             }
@@ -595,7 +605,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             JumpMyCharacter();
             CharacterStatus(hWnd);
             CharacterDrop();
-            ItemBoxSet();
+            ItemBoxSet(hWnd);
 
             //내 캐릭 살았을때랑 죽었을때
             if (live) {
@@ -687,7 +697,6 @@ void MoveMyCharacter() {
 
 void JumpMyCharacter() {
     RECT CrashBottom;
-    RECT ObsCrash;
 
     // 점프중이라면
     if (jumping && live && pos_op && drop == FALSE) {
@@ -978,8 +987,6 @@ void CharacterStatus(HWND statusHWND) {
 
 void CharacterDrop() {
     RECT CrashBottom;
-    RECT CrashObs;
-    RECT CrashItem;
 
     if (drop == TRUE && TRUE == live && FALSE == bottom && TRUE == pos_op) {
         if (jumping == TRUE) {
@@ -1078,7 +1085,7 @@ void CharacterDrop() {
     }
 }
 
-void ItemBoxSet() {
+void ItemBoxSet(HWND itemHWND) {
     RECT item;                  // 아이템 곂침 영역 확인용
     RECT drop_item;             // 아이템과 플레이어의 곂침 영역 저장
     RECT item_bottom;           // 아이템 바닥 영역 저장
@@ -1090,7 +1097,9 @@ void ItemBoxSet() {
 
     // 1번 아이템(먹으면 다른 아이템이 나옴)
     if (IntersectRect(&item, &NowmyCharacterRect, &item_bottom) && Move_item == FALSE) {
-        ActItem = TRUE;
+        if (itemBoxTimer == 0) {
+            itemBoxTimer = 1; //무적 시간 만들어주기
+        }
         return;
     }
 
